@@ -96,6 +96,113 @@ RSS_FEEDS = {
         "priority": 2,
         "type": "newsletter",
     },
+    # --- Company Blogs: AI Labs ---
+    "Anthropic Blog": {
+        "url": "https://www.anthropic.com/research/rss.xml",
+        "category": "Company Blog",
+        "priority": 1,
+        "type": "blog",
+    },
+    "Meta AI Blog": {
+        "url": "https://ai.meta.com/blog/rss/",
+        "category": "Company Blog",
+        "priority": 1,
+        "type": "blog",
+    },
+    "Microsoft AI Blog": {
+        "url": "https://blogs.microsoft.com/ai/feed/",
+        "category": "Company Blog",
+        "priority": 1,
+        "type": "blog",
+    },
+    "Amazon AI Blog": {
+        "url": "https://aws.amazon.com/blogs/machine-learning/feed/",
+        "category": "Company Blog",
+        "priority": 2,
+        "type": "blog",
+    },
+    "Apple Machine Learning": {
+        "url": "https://machinelearning.apple.com/rss.xml",
+        "category": "Company Blog",
+        "priority": 2,
+        "type": "blog",
+    },
+    # --- Company Blogs: AI Infrastructure ---
+    "NVIDIA Blog": {
+        "url": "https://blogs.nvidia.com/feed/",
+        "category": "AI Infrastructure",
+        "priority": 1,
+        "type": "blog",
+    },
+    "AMD AI Blog": {
+        "url": "https://community.amd.com/t5/ai/bg-p/amd-ai/label-name/blog",
+        "category": "AI Infrastructure",
+        "priority": 2,
+        "type": "blog",
+    },
+    # --- Company Blogs: AI-First Companies ---
+    "Hugging Face Blog": {
+        "url": "https://huggingface.co/blog/feed.xml",
+        "category": "AI Platform",
+        "priority": 1,
+        "type": "blog",
+    },
+    "Stability AI Blog": {
+        "url": "https://stability.ai/blog/rss.xml",
+        "category": "AI Platform",
+        "priority": 2,
+        "type": "blog",
+    },
+    "Cohere Blog": {
+        "url": "https://cohere.com/blog/rss.xml",
+        "category": "AI Platform",
+        "priority": 2,
+        "type": "blog",
+    },
+    "Mistral AI Blog": {
+        "url": "https://mistral.ai/feed.xml",
+        "category": "AI Platform",
+        "priority": 2,
+        "type": "blog",
+    },
+    "Perplexity Blog": {
+        "url": "https://www.perplexity.ai/hub/blog/rss.xml",
+        "category": "AI Platform",
+        "priority": 2,
+        "type": "blog",
+    },
+    # --- Company Blogs: Enterprise / Productivity ---
+    "Salesforce AI Blog": {
+        "url": "https://blog.salesforceairesearch.com/rss/",
+        "category": "Enterprise AI",
+        "priority": 2,
+        "type": "blog",
+    },
+    "Notion AI Blog": {
+        "url": "https://www.notion.so/blog/rss.xml",
+        "category": "Productivity AI",
+        "priority": 2,
+        "type": "blog",
+    },
+    "Canva AI Blog": {
+        "url": "https://www.canva.dev/blog/engineering/feed.xml",
+        "category": "Productivity AI",
+        "priority": 2,
+        "type": "blog",
+    },
+    # --- Company Blogs: Cloud Platforms ---
+    "Google Cloud AI Blog": {
+        "url": "https://cloud.google.com/blog/products/ai-machine-learning/rss",
+        "category": "Cloud AI",
+        "priority": 2,
+        "type": "blog",
+    },
+    "AWS Machine Learning Blog": {
+        "url": "https://aws.amazon.com/blogs/aws/category/artificial-intelligence/feed/",
+        "category": "Cloud AI",
+        "priority": 2,
+        "type": "blog",
+    },
 }
 
 AI_KEYWORDS = [
