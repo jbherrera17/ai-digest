@@ -26,3 +26,9 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Vercel
+.vercel/
+
+# Old Flask app (archived)
+AIDevelopment/venv/
