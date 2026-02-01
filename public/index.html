@@ -119,6 +119,18 @@
         .quick-hit a { color: #333; text-decoration: none; font-weight: 500; }
         .quick-hit a:hover { color: #667eea; }
         .quick-hit .meta { font-size: 0.8rem; color: #888; margin-top: 4px; }
+        .key-bullets { margin: 10px 0; padding-left: 18px; }
+        .key-bullets li { color: #444; line-height: 1.6; font-size: 0.9rem; margin-bottom: 4px; }
+        .what-it-means { margin: 12px 0; padding: 12px 16px; background: #f0f4ff; border-radius: 8px; border-left: 3px solid #667eea; }
+        .what-it-means h4 { font-size: 0.95rem; color: #667eea; margin-bottom: 8px; }
+        .what-it-means .impact-sub { margin-bottom: 8px; }
+        .what-it-means .impact-sub strong { font-size: 0.85rem; color: #333; }
+        .what-it-means .impact-sub p { font-size: 0.85rem; color: #555; margin-top: 2px; line-height: 1.5; }
+        .viral-badge { display: inline-block; background: #ef4444; color: white; font-size: 0.7rem; font-weight: 600; padding: 2px 8px; border-radius: 12px; margin-left: 8px; }
+        .content-suggestions { margin: 10px 0; padding: 12px 16px; background: #fef3c7; border-radius: 8px; border-left: 3px solid #f59e0b; }
+        .content-suggestions h4 { font-size: 0.9rem; color: #92400e; margin-bottom: 6px; }
+        .content-suggestions ul { padding-left: 18px; }
+        .content-suggestions li { font-size: 0.85rem; color: #78350f; line-height: 1.5; margin-bottom: 3px; }
         .export-buttons { display: flex; gap: 10px; margin-top: 20px; }
         .tabs { display: flex; gap: 5px; margin-bottom: 20px; }
         .tab {
@@ -341,27 +353,61 @@
             `;
             document.getElementById('topStories').innerHTML = data.top_stories.map((a, i) => `
                 <div class="article">
-                    <h3><a href="${a.link}" target="_blank">${i + 1}. ${a.title}</a></h3>
+                    <h3><a href="${a.link}" target="_blank">${i + 1}. ${a.title}</a>${a.viral_score >= 4 ? '<span class="viral-badge">TRENDING</span>' : ''}</h3>
                     <div class="article-meta">
                         <span class="source">${a.source}</span>
                         <span>${a.published_display}</span>
                         <span class="topic">${a.topic}</span>
                     </div>
-                    <p>${a.summary}</p>
+                    ${a.key_bullets && a.key_bullets.length > 0 ? `
+                        <ul class="key-bullets">
+                            ${a.key_bullets.map(b => `<li>${b}</li>`).join('')}
+                        </ul>
+                    ` : `<p>${a.summary}</p>`}
+                    ${a.impact ? `
+                        <div class="what-it-means">
+                            <h4>What it Means</h4>
+                            <div class="impact-sub"><strong>General Impact:</strong><p>${a.impact.general_impact}</p></div>
+                            <div class="impact-sub"><strong>Impact to SMBs:</strong><p>${a.impact.smb_impact}</p></div>
+                        </div>
+                    ` : ''}
+                    ${a.content_suggestions ? `
+                        <div class="content-suggestions">
+                            <h4>Content Ideas (Trending Topic)</h4>
+                            <ul>${a.content_suggestions.map(s => `<li>${s}</li>`).join('')}</ul>
+                        </div>
+                    ` : ''}
                 </div>
             `).join('');
             document.getElementById('smbSpotlight').innerHTML = data.smb_spotlight.length > 0
                 ? data.smb_spotlight.map(a => `
                     <div class="article">
                         <div class="article-header">
-                            <h3><a href="${a.link}" target="_blank">${a.title}</a></h3>
+                            <h3><a href="${a.link}" target="_blank">${a.title}</a>${a.viral_score >= 4 ? '<span class="viral-badge">TRENDING</span>' : ''}</h3>
                             <span class="smb-score">${'★'.repeat(a.smb_score)}${'☆'.repeat(10 - a.smb_score)}</span>
                         </div>
                         <div class="article-meta">
                             <span class="source">${a.source}</span>
                             <span>${a.published_display}</span>
                         </div>
-                        <p>${a.summary}</p>
+                        ${a.key_bullets && a.key_bullets.length > 0 ? `
+                            <ul class="key-bullets">
+                                ${a.key_bullets.map(b => `<li>${b}</li>`).join('')}
+                            </ul>
+                        ` : `<p>${a.summary}</p>`}
+                        ${a.impact ? `
+                            <div class="what-it-means">
+                                <h4>What it Means</h4>
+                                <div class="impact-sub"><strong>General Impact:</strong><p>${a.impact.general_impact}</p></div>
+                                <div class="impact-sub"><strong>Impact to SMBs:</strong><p>${a.impact.smb_impact}</p></div>
+                            </div>
+                        ` : ''}
+                        ${a.content_suggestions ? `
+                            <div class="content-suggestions">
+                                <h4>Content Ideas (Trending Topic)</h4>
+                                <ul>${a.content_suggestions.map(s => `<li>${s}</li>`).join('')}</ul>
+                            </div>
+                        ` : ''}
                     </div>
                 `).join('')
                 : '<p style="color:#666;padding:20px;">No highly SMB-relevant articles found this period.</p>';
