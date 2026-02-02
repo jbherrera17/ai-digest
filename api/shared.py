@@ -151,6 +151,61 @@ RSS_FEEDS = {
         "priority": 2,
         "type": "newsletter",
     },
+    # --- Medium Follows ---
+    "Towards AI (Medium)": {
+        "url": "https://medium.com/feed/towards-artificial-intelligence",
+        "category": "Medium",
+        "priority": 2,
+        "type": "newsletter",
+    },
+    "UX Collective (Medium)": {
+        "url": "https://medium.com/feed/ux-collective",
+        "category": "Medium",
+        "priority": 2,
+        "type": "newsletter",
+    },
+    "Gaurav Jain (Medium)": {
+        "url": "https://medium.com/feed/@gauravjain",
+        "category": "Medium",
+        "priority": 2,
+        "type": "newsletter",
+    },
+    "AI Advances (Medium)": {
+        "url": "https://medium.com/feed/ai-advances",
+        "category": "Medium",
+        "priority": 2,
+        "type": "newsletter",
+    },
+    "Generative AI (Medium)": {
+        "url": "https://medium.com/feed/generative-ai",
+        "category": "Medium",
+        "priority": 2,
+        "type": "newsletter",
+    },
+    "UX Planet (Medium)": {
+        "url": "https://medium.com/feed/ux-planet",
+        "category": "Medium",
+        "priority": 2,
+        "type": "newsletter",
+    },
+    "Entrepreneurship Handbook (Medium)": {
+        "url": "https://medium.com/feed/entrepreneurs-handbook",
+        "category": "Medium",
+        "priority": 2,
+        "type": "newsletter",
+    },
+    "AI in Plain English (Medium)": {
+        "url": "https://medium.com/feed/ai-in-plain-english",
+        "category": "Medium",
+        "priority": 2,
+        "type": "newsletter",
+    },
+    "Alberto Romero (Medium)": {
+        "url": "https://medium.com/feed/@albertoromgar",
+        "category": "Medium",
+        "priority": 2,
+        "type": "newsletter",
+    },
     # --- Company Blogs: AI Labs ---
     "Anthropic Blog": {
         "url": "https://www.anthropic.com/research/rss.xml",
