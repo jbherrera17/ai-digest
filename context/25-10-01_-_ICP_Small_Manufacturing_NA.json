@@ -1,0 +1,132 @@
+{
+  "audience_overview": {
+    "one_sentence_summary": "Privately-owned small manufacturing firms in North America producing custom or niche industrial, consumer, or component goods, led by hands-on owners seeking modernization and growth.",
+    "primary_identity": "Small manufacturing company (5\u201320 years in business, $3M\u2013$25M revenue)",
+    "typical_roles": [
+      "Owner-Operator",
+      "President/CEO",
+      "VP/Director of Operations",
+      "Plant Manager",
+      "CFO/Controller"
+    ],
+    "locations": [
+      "Midwest & Rust Belt (OH, MI, WI, IL, IN)",
+      "U.S. Southeast",
+      "Ontario/Quebec",
+      "British Columbia",
+      "Northern Mexico border manufacturing hubs"
+    ],
+    "industry_segments": [
+      "Metal fabrication",
+      "Plastics and packaging",
+      "Precision components",
+      "Custom assembly",
+      "Contract manufacturing for automotive/aerospace/medical devices",
+      "Consumer packaged goods manufacturing"
+    ]
+  },
+  "psychographics": {
+    "core_desires": [
+      "Reduce production bottlenecks and scrap/waste",
+      "Win more B2B contracts and expand distribution",
+      "Improve cash-flow predictability and profit margins",
+      "Modernize tech stack (automation, ERP, AI analytics) without disrupting output",
+      "Build a more skilled and reliable workforce"
+    ],
+    "fears_risks_anxieties": [
+      "Downtime from new-system adoption hurting delivery schedules",
+      "Rising labor and raw-material costs eroding margins",
+      "Losing contracts to cheaper overseas competitors",
+      "Compliance, quality, or safety failures damaging reputation",
+      "Choosing the wrong technology partner and wasting capital"
+    ],
+    "key_values": [
+      "Reliability and uptime",
+      "Clear ROI with measurable efficiency gains",
+      "Industry-savvy partners who understand shop-floor realities",
+      "Long-term relationships over transactional vendors",
+      "Straight-talk, low-hype communication"
+    ],
+    "emotional_motivators": [
+      "Pride in Made-in-America/Canada/Mexico craftsmanship",
+      "Desire to protect jobs for their community and employees",
+      "Relief from daily firefighting and production stress",
+      "Competitive drive to prove a small shop can beat larger rivals"
+    ]
+  },
+  "pain_points_symptoms": {
+    "major_problems": [
+      "Inefficient production scheduling and excess downtime",
+      "Legacy equipment & disconnected software causing data silos",
+      "Inventory mismanagement leading to cash tied-up or shortages",
+      "Difficulty recruiting/retaining skilled labor",
+      "Low visibility into real-time costs and profitability"
+    ],
+    "failed_solutions": [
+      "Off-the-shelf ERP or MRP modules that were too generic or poorly implemented",
+      "Manual spreadsheets patched together across departments",
+      "Outsourced marketing/sales without clear ICP targeting",
+      "One-off automation projects that didn\u2019t integrate with the rest of the plant"
+    ],
+    "day_to_day_manifestations": [
+      "Constant rescheduling, overtime, and rush-shipping fees",
+      "Paper travelers or whiteboards still driving production priorities",
+      "Rework and quality-control backlogs",
+      "\u201cTribal knowledge\u201d locked in a few veteran employees",
+      "Leadership spending time firefighting rather than pursuing new business"
+    ]
+  },
+  "desired_transformation": {
+    "ideal_future_state": "A lean, tech-enabled operation with predictable output, >95% on-time delivery, lower scrap and overtime, transparent cost data, and a sales pipeline that fuels steady growth.",
+    "self_description_after_success": "We finally run like a modern manufacturer \u2014 efficient, data-driven, competitive, and attractive to new customers and talent."
+  },
+  "beliefs_buying_triggers": {
+    "limiting_beliefs": [
+      "We\u2019re too small to afford the right technology",
+      "Automation will be disruptive or put my people out of work",
+      "Big-company solutions won\u2019t fit a 50-person shop"
+    ],
+    "bad_advice_myths": [
+      "A single ERP will fix everything",
+      "Lean or AI is only for Fortune-500 plants",
+      "Cheaper overseas sourcing always beats local modernization"
+    ],
+    "buying_triggers": [
+      "Losing a major contract due to missed delivery/quality metrics",
+      "A new compliance or ISO-certification requirement",
+      "Second-generation leadership wanting modernization",
+      "Grants/tax-credit opportunities for Industry 4.0 upgrades",
+      "Capacity crunch from sudden demand surge"
+    ]
+  },
+  "language_segmentation": {
+    "customer_phrases": [
+      "We\u2019re drowning in spreadsheets",
+      "Our machines aren\u2019t talking to each other",
+      "Too much downtime on changeovers",
+      "We need better visibility on our margins",
+      "Hard to find skilled machinists who\u2019ll stay"
+    ],
+    "industry_jargon": [
+      "OEE (Overall Equipment Effectiveness)",
+      "Scrap rate",
+      "Lead-time",
+      "Change-over",
+      "Downtime",
+      "Cycle-time",
+      "Throughput",
+      "Work-in-progress",
+      "Preventive maintenance",
+      "ISO 9001/13485",
+      "Lean manufacturing",
+      "MRP/ERP"
+    ],
+    "off_putting_language": [
+      "Game-changing disruption",
+      "10X overnight",
+      "Metaverse-ready",
+      "AI magic",
+      "Buzzwords that ignore shop-floor realities"
+    ]
+  }
+}

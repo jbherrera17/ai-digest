@@ -1,0 +1,170 @@
+{
+  "audience_overview": {
+    "one_sentence_summary": "Boutique professional service firms with 10\u2013100 employees and $1M\u2013$20M in revenue, seeking to scale operations without ballooning costs.",
+    "primary_identity": "Small Professional Services Organization",
+    "stage_of_business": "Growth-to-scale stage with established client base and proven services",
+    "location_majority": "Primarily U.S. and Canada, metro areas with concentration of SMB and enterprise clients",
+    "demographics": {
+      "age_range": "",
+      "gender_split": "",
+      "education_level": ""
+    }
+  },
+  "psychographics": {
+    "core_desires": [
+      "Increase billable efficiency",
+      "Differentiate in a competitive market",
+      "Deliver consistent client experience",
+      "Protect margins while scaling",
+      "Leverage technology without disrupting culture"
+    ],
+    "core_fears": [
+      "Compliance or data breaches with new tech",
+      "Undermining client trust",
+      "Team adoption and change fatigue",
+      "Investing in tech that doesn\u2019t integrate"
+    ],
+    "core_values": [
+      "Reliability",
+      "Confidentiality",
+      "Compliance",
+      "Demonstrable ROI",
+      "Seamless integration",
+      "Ethical, explainable AI"
+    ]
+  },
+  "pain_points": {
+    "top_pains": [
+      "Manual repetitive processes",
+      "Siloed tools and poor integration",
+      "Margin erosion from labor costs",
+      "Inconsistent client communication",
+      "Limited scalability without more hiring"
+    ],
+    "symptoms": [
+      "Staff frustration with admin work",
+      "Missed client updates or follow-through",
+      "Delayed reports and filings",
+      "Partners working long hours on non-billable tasks"
+    ],
+    "failed_attempts": [
+      "Legacy practice management systems",
+      "Hiring more admin staff",
+      "Off-the-shelf automation tools",
+      "Piecemeal fixes like Zapier or basic RPA"
+    ]
+  },
+  "desired_transformation": {
+    "outcomes": [
+      "Automated routine workflows",
+      "Consistent client touchpoints",
+      "Staff focused on higher-value advisory work",
+      "Growth without proportional headcount increase",
+      "AI systems that ensure compliance and enhance trust"
+    ],
+    "aspirational_identity": "An innovative, efficient, client-centric firm that scales smartly while protecting reputation"
+  },
+  "beliefs_and_triggers": {
+    "limiting_beliefs": [
+      "AI isn\u2019t safe for sensitive client data",
+      "Our industry is too regulated for AI",
+      "Change is too disruptive for our culture"
+    ],
+    "industry_myths": [
+      "Hire more associates to handle growth",
+      "Generic automation tools are good enough",
+      "Compliance makes innovation impossible"
+    ],
+    "buying_triggers": [
+      "Data security breach or compliance scare",
+      "Increased client demands without margin for staff",
+      "Competitor adoption of AI tools",
+      "Merger or acquisition activity"
+    ]
+  },
+  "language_patterns": {
+    "keywords_used": [
+      "Drowning in paperwork",
+      "Margins are getting tighter",
+      "We need better systems without adding headcount",
+      "Client experience has to be consistent"
+    ],
+    "slang_or_jargon": [
+      "Billables",
+      "Margins",
+      "Compliance",
+      "Case load",
+      "Workflow",
+      "Client journey",
+      "Knowledge management"
+    ],
+    "phrases_to_avoid": [
+      "Guaranteed disruption-free AI",
+      "Overnight margin transformation",
+      "Magic AI solution"
+    ]
+  },
+  "emotional_journey": {
+    "current_state": "Frustrated with inefficiencies and margin pressure",
+    "desired_state": "Confident, efficient, and trusted while scaling smartly"
+  },
+  "audience_segments": [
+    {
+      "segment_name": "Law Firms",
+      "unique_traits": [
+        "Highly regulated",
+        "Document-intensive"
+      ],
+      "specific_pains": [
+        "Compliance complexity",
+        "High admin workload"
+      ],
+      "specific_desires": [
+        "Streamlined case management",
+        "Protect client confidentiality"
+      ],
+      "cta_language_hints": [
+        "Scale your firm without compliance risk",
+        "Free up lawyers for billable work"
+      ]
+    },
+    {
+      "segment_name": "Accounting Firms",
+      "unique_traits": [
+        "Seasonal workload spikes",
+        "Data-heavy processes"
+      ],
+      "specific_pains": [
+        "Manual reporting",
+        "Burnout during peak season"
+      ],
+      "specific_desires": [
+        "Automated reporting",
+        "Balanced workload across staff"
+      ],
+      "cta_language_hints": [
+        "Simplify reporting, amplify margins",
+        "Automate compliance tasks with confidence"
+      ]
+    },
+    {
+      "segment_name": "Creative & Marketing Agencies",
+      "unique_traits": [
+        "Project-driven",
+        "Fast client turnaround demands"
+      ],
+      "specific_pains": [
+        "Project bottlenecks",
+        "Inconsistent client comms"
+      ],
+      "specific_desires": [
+        "Smooth workflows",
+        "Scalable client engagement"
+      ],
+      "cta_language_hints": [
+        "Deliver consistent client excellence",
+        "Streamline creative workflows without losing agility"
+      ]
+    }
+  ]
+}

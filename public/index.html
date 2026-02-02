@@ -604,17 +604,13 @@
             }, 400);
         }
 
-        function displayResults(data) {
-            document.getElementById('stats').innerHTML = `
-                <div class="stat-box"><div class="number">${data.stats.total_articles}</div><div class="label">Articles</div></div>
-                <div class="stat-box"><div class="number">${data.stats.sources_checked}</div><div class="label">Sources</div></div>
-                <div class="stat-box"><div class="number">${data.top_stories.length}</div><div class="label">Top Stories</div></div>
-                <div class="stat-box"><div class="number">${data.smb_spotlight.length}</div><div class="label">SMB Relevant</div></div>
-            `;
-
-            document.getElementById('topStories').innerHTML = data.top_stories.map((a, i) => `
+        function renderArticleCard(a) {
+            return `
                 <div class="article">
-                    <h3><a href="${a.link}" target="_blank">${i + 1}. ${a.title}</a>${a.viral_score >= 4 ? '<span class="viral-badge">Trending</span>' : ''}</h3>
+                    <div class="article-header">
+                        <h3><a href="${a.link}" target="_blank">${a.title}</a>${a.viral_score >= 4 ? '<span class="viral-badge">Trending</span>' : ''}</h3>
+                        <span class="smb-score">${'\u2605'.repeat(a.smb_score || 0)}${'\u2606'.repeat(10 - (a.smb_score || 0))}</span>
+                    </div>
                     <div class="article-meta">
                         <span class="source">${a.source}</span>
                         <span>${a.published_display}</span>
@@ -638,40 +634,21 @@
                             <ul>${a.content_suggestions.map(s => `<li>${s}</li>`).join('')}</ul>
                         </div>
                     ` : ''}
-                </div>
-            `).join('');
+                </div>`;
+        }
+
+        function displayResults(data) {
+            document.getElementById('stats').innerHTML = `
+                <div class="stat-box"><div class="number">${data.stats.total_articles}</div><div class="label">Articles</div></div>
+                <div class="stat-box"><div class="number">${data.stats.sources_checked}</div><div class="label">Sources</div></div>
+                <div class="stat-box"><div class="number">${data.top_stories.length}</div><div class="label">Top Stories</div></div>
+                <div class="stat-box"><div class="number">${data.smb_spotlight.length}</div><div class="label">SMB Relevant</div></div>
+            `;
+
+            document.getElementById('topStories').innerHTML = data.top_stories.map(a => renderArticleCard(a)).join('');
 
             document.getElementById('smbSpotlight').innerHTML = data.smb_spotlight.length > 0
-                ? data.smb_spotlight.map(a => `
-                    <div class="article">
-                        <div class="article-header">
-                            <h3><a href="${a.link}" target="_blank">${a.title}</a>${a.viral_score >= 4 ? '<span class="viral-badge">Trending</span>' : ''}</h3>
-                            <span class="smb-score">${'\u2605'.repeat(a.smb_score)}${'\u2606'.repeat(10 - a.smb_score)}</span>
-                        </div>
-                        <div class="article-meta">
-                            <span class="source">${a.source}</span>
-                            <span>${a.published_display}</span>
-                        </div>
-                        ${a.key_bullets && a.key_bullets.length > 0 ? `
-                            <ul class="key-bullets">
-                                ${a.key_bullets.map(b => `<li>${b}</li>`).join('')}
-                            </ul>
-                        ` : `<p>${a.summary}</p>`}
-                        ${a.impact ? `
-                            <div class="what-it-means">
-                                <h4>What it Means</h4>
-                                <div class="impact-sub"><strong>General Impact:</strong><p>${a.impact.general_impact}</p></div>
-                                <div class="impact-sub"><strong>Impact to SMBs:</strong><p>${a.impact.smb_impact}</p></div>
-                            </div>
-                        ` : ''}
-                        ${a.content_suggestions ? `
-                            <div class="content-suggestions">
-                                <h4>Content Ideas (Trending Topic)</h4>
-                                <ul>${a.content_suggestions.map(s => `<li>${s}</li>`).join('')}</ul>
-                            </div>
-                        ` : ''}
-                    </div>
-                `).join('')
+                ? data.smb_spotlight.map(a => renderArticleCard(a)).join('')
                 : '<p style="color:#999;padding:20px;text-align:center;">No highly SMB-relevant articles found this period.</p>';
 
             const topicOrder = ['Big Tech', 'Funding & Deals', 'Product News', 'Research', 'Policy & Regulation', 'SMB Focus', 'General AI News'];
@@ -683,21 +660,11 @@
                             <span>${t}</span>
                             <span class="count">${data.by_topic[t].length} articles</span>
                         </div>
-                        ${data.by_topic[t].slice(0, 5).map(a => `
-                            <div class="quick-hit">
-                                <a href="${a.link}" target="_blank">${a.title}</a>
-                                <div class="meta">${a.source} | ${a.published_display}</div>
-                            </div>
-                        `).join('')}
+                        ${data.by_topic[t].slice(0, 5).map(a => renderArticleCard(a)).join('')}
                     </div>
                 `).join('');
 
-            document.getElementById('allArticles').innerHTML = data.all_articles.map((a, i) => `
-                <div class="quick-hit">
-                    <a href="${a.link}" target="_blank">${i + 1}. ${a.title}</a>
-                    <div class="meta">${a.source} | ${a.published_display} | ${a.topic}</div>
-                </div>
-            `).join('');
+            document.getElementById('allArticles').innerHTML = data.all_articles.map(a => renderArticleCard(a)).join('');
         }
 
         function showTab(tab, el) {

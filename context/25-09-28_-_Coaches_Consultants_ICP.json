@@ -1,0 +1,172 @@
+{
+  "audience_overview": {
+    "one_sentence_summary": "Independent coaches and boutique consultants who have built a successful practice but are stuck at a growth ceiling due to time, admin, and scalability limits.",
+    "primary_identity": "Coach or Consultant",
+    "stage_of_business": "Established with steady revenue, seeking scale",
+    "location_majority": "North America with global virtual reach (UK, Canada, Australia)",
+    "demographics": {
+      "age_range": "",
+      "gender_split": "",
+      "education_level": ""
+    }
+  },
+  "psychographics": {
+    "core_desires": [
+      "Free up time from admin",
+      "Scale from 1:1 to 1:many models",
+      "Build authority through thought leadership",
+      "Deliver consistent client experiences",
+      "Grow revenue without hiring large teams"
+    ],
+    "core_fears": [
+      "AI makes practice feel impersonal",
+      "Investing in tech that wastes money or time",
+      "Falling behind peers adopting AI"
+    ],
+    "core_values": [
+      "Authenticity",
+      "Simplicity",
+      "Proof of ROI",
+      "Ethical and transparent AI"
+    ]
+  },
+  "pain_points": {
+    "top_pains": [
+      "Admin overload",
+      "Content marketing treadmill",
+      "Inconsistent client onboarding",
+      "Revenue capped by hours",
+      "Difficulty differentiating in crowded market"
+    ],
+    "symptoms": [
+      "Working late nights on admin",
+      "Neglected marketing or newsletters",
+      "Leads slipping through cracks",
+      "Overbooked and burnt out"
+    ],
+    "failed_attempts": [
+      "Hiring low-cost virtual assistants",
+      "Using generic chatbots or automation tools",
+      "Buying all-in-one platforms",
+      "DIY content batching systems"
+    ]
+  },
+  "desired_transformation": {
+    "outcomes": [
+      "Practice runs smoothly with AI handling tasks",
+      "Consistent thought leadership presence",
+      "New revenue streams supported by AI",
+      "More freedom for high-value work and personal life"
+    ],
+    "aspirational_identity": "A CEO of their practice with bandwidth to scale authentically and be recognized as a niche leader"
+  },
+  "beliefs_and_triggers": {
+    "limiting_beliefs": [
+      "Not tech-savvy enough",
+      "AI might replace personal touch",
+      "AI is only for big companies"
+    ],
+    "industry_myths": [
+      "Post more content is the solution",
+      "Scaling requires hiring more assistants",
+      "AI is a fad or too advanced for small practices"
+    ],
+    "buying_triggers": [
+      "Burnout or revenue plateau",
+      "Rebrand or scaling new offers",
+      "Peers successfully integrating AI",
+      "Clients or competitors prompting AI adoption"
+    ]
+  },
+  "language_patterns": {
+    "keywords_used": [
+      "Drowning in admin",
+      "Clone myself",
+      "Need more time to coach/consult",
+      "Marketing takes all my energy",
+      "Scale without losing personal touch"
+    ],
+    "slang_or_jargon": [
+      "Scaling",
+      "Systems",
+      "Funnels",
+      "Content calendar",
+      "Onboarding",
+      "Client journey",
+      "Thought leadership",
+      "ROI",
+      "Visibility",
+      "Impact",
+      "Authentic voice"
+    ],
+    "phrases_to_avoid": [
+      "Guaranteed overnight success",
+      "Done-for-you miracle AI",
+      "Easy button",
+      "Buzzword-heavy language"
+    ]
+  },
+  "emotional_journey": {
+    "current_state": "Overwhelmed and burnt out",
+    "desired_state": "Relieved, empowered, and proud to scale authentically"
+  },
+  "audience_segments": [
+    {
+      "segment_name": "Executive and Leadership Coaches",
+      "unique_traits": [
+        "Work with corporate leaders",
+        "Focus on professional development"
+      ],
+      "specific_pains": [
+        "High client expectations",
+        "Manual prep for sessions"
+      ],
+      "specific_desires": [
+        "Extend reach with group programs",
+        "Maintain credibility"
+      ],
+      "cta_language_hints": [
+        "Amplify your leadership impact",
+        "Scale your executive practice without losing touch"
+      ]
+    },
+    {
+      "segment_name": "Business Consultants",
+      "unique_traits": [
+        "Advise SMBs on growth",
+        "Often project-based revenue"
+      ],
+      "specific_pains": [
+        "Time lost on reporting",
+        "Inconsistent client follow-up"
+      ],
+      "specific_desires": [
+        "Deliver higher value efficiently",
+        "Stand out in crowded market"
+      ],
+      "cta_language_hints": [
+        "Unlock clarity and efficiency for your clients",
+        "Grow your consulting practice without extra overhead"
+      ]
+    },
+    {
+      "segment_name": "Life and Health Coaches",
+      "unique_traits": [
+        "Emphasis on personal transformation",
+        "Strong reliance on personal brand"
+      ],
+      "specific_pains": [
+        "Struggle to keep marketing consistent",
+        "Revenue capped by 1:1 sessions"
+      ],
+      "specific_desires": [
+        "Scale offerings into courses",
+        "Maintain authentic human connection"
+      ],
+      "cta_language_hints": [
+        "Reach more people with your authentic voice",
+        "Free up time to focus on client transformation"
+      ]
+    }
+  ]
+}

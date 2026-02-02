@@ -448,6 +448,62 @@ IMPACT_TEMPLATES = {
     },
 }
 
+# --- ICP Pain Point Matching ---
+# Keywords from each ICP mapped to specific, actionable SMB impact statements.
+# When an article matches these keywords, the impact text addresses real pain points
+# from Coaches/Consultants, Professional Services, Healthcare, and Manufacturing ICPs.
+
+ICP_PAIN_SIGNALS = [
+    {
+        'keywords': ['content', 'marketing', 'writing', 'blog', 'newsletter', 'social media', 'thought leadership', 'brand'],
+        'smb_impact': 'Coaches and consultants trapped on the content marketing treadmill should evaluate this for automating thought leadership — freeing time from admin-heavy content creation while maintaining an authentic voice.',
+    },
+    {
+        'keywords': ['scheduling', 'calendar', 'booking', 'appointment', 'onboarding', 'intake', 'client management', 'crm'],
+        'smb_impact': 'For practices drowning in admin — from client onboarding to scheduling — this could reduce the manual overhead that caps revenue at billable hours. Healthcare clinics facing intake backlogs and coaching practices with leads slipping through cracks should watch closely.',
+    },
+    {
+        'keywords': ['automation', 'workflow', 'process', 'automate', 'efficiency', 'streamline', 'productivity'],
+        'smb_impact': 'This directly addresses the #1 pain across SMBs: manual repetitive processes. Professional service firms losing margin to non-billable admin, manufacturers drowning in spreadsheets, and coaches working late nights on operations should assess how this reduces hands-on busywork.',
+    },
+    {
+        'keywords': ['compliance', 'regulation', 'hipaa', 'gdpr', 'audit', 'privacy', 'security', 'data protection'],
+        'smb_impact': 'For healthcare practices navigating HIPAA, law firms managing compliance complexity, and manufacturers facing ISO requirements — this impacts your regulatory burden directly. Monitor whether new compliance tools emerge or if new rules add overhead to your AI adoption.',
+    },
+    {
+        'keywords': ['hiring', 'staffing', 'talent', 'workforce', 'employee', 'labor', 'recruitment', 'retention', 'team'],
+        'smb_impact': 'SMBs struggling to scale without adding headcount take note. Coaches capped by 1:1 sessions, professional services firms with partners working non-billable hours, and manufacturers who can\'t find skilled machinists could use AI to bridge staffing gaps without ballooning payroll.',
+    },
+    {
+        'keywords': ['cost', 'pricing', 'affordable', 'budget', 'margin', 'revenue', 'profit', 'roi', 'subscription', 'free tier'],
+        'smb_impact': 'Margin pressure is real across SMBs — from professional services firms watching labor costs erode profits to manufacturers with tight margins on custom work. Evaluate whether this offers measurable ROI at a price point that works without enterprise budgets.',
+    },
+    {
+        'keywords': ['chatbot', 'customer service', 'support', 'conversation', 'assistant', 'agent', 'virtual assistant'],
+        'smb_impact': 'Practices losing leads to inconsistent follow-up and clinics with overwhelmed receptionists should evaluate AI assistants carefully. The key concern across ICPs: will it feel impersonal? Look for solutions that augment your team rather than replace the human touch your clients expect.',
+    },
+    {
+        'keywords': ['document', 'report', 'paperwork', 'filing', 'template', 'contract', 'invoice'],
+        'smb_impact': 'Document-heavy businesses — law firms buried in case files, accounting firms with manual reporting, healthcare practices with charting backlogs, manufacturers tracking work-in-progress on whiteboards — this could cut hours of non-billable paperwork per week.',
+    },
+    {
+        'keywords': ['scale', 'scaling', 'growth', 'expand', 'grow'],
+        'smb_impact': 'The central challenge across SMBs: growing without proportional cost increases. Coaches want to move from 1:1 to 1:many. Professional services need more throughput without more hires. Manufacturers need capacity without overtime. Assess how this helps you scale smartly.',
+    },
+    {
+        'keywords': ['integration', 'api', 'platform', 'connect', 'ecosystem', 'plugin', 'app store'],
+        'smb_impact': 'Siloed tools and poor integration plague SMBs — from disconnected practice management systems to manufacturing equipment that doesn\'t talk to each other. Look for whether this connects to tools you already use rather than creating another data island.',
+    },
+    {
+        'keywords': ['patient', 'health', 'clinical', 'medical', 'care', 'diagnosis', 'treatment', 'ehr'],
+        'smb_impact': 'Small healthcare organizations spending evenings charting and scrambling before audits should assess this carefully. The promise: more time for patient care, less paperwork. The concern: patient data safety and maintaining trust. Look for HIPAA-ready, explainable AI.',
+    },
+    {
+        'keywords': ['manufacturing', 'production', 'supply chain', 'inventory', 'logistics', 'warehouse', 'factory', 'industrial'],
+        'smb_impact': 'Small manufacturers dealing with production bottlenecks, excess downtime, and legacy equipment should evaluate this. The goal: predictable output, lower scrap rates, and better visibility into real-time costs — without disrupting current operations during adoption.',
+    },
+]
+
 
 def extract_key_bullets(article):
     """Extract 2-3 key bullet points from the article summary."""
@@ -474,12 +530,28 @@ def calculate_viral_score(article):
 
 
 def generate_impact(article):
-    """Generate 'What it Means' content based on article topic."""
+    """Generate 'What it Means' content based on article topic and ICP pain points."""
     topic = article.get('topic', 'General AI News')
     templates = IMPACT_TEMPLATES.get(topic, IMPACT_TEMPLATES['General AI News'])
+    general = templates['general']
+
+    # Try to match article content to specific ICP pain points
+    text = (article['title'] + ' ' + article.get('summary', '')).lower()
+    matched_impacts = []
+    for signal in ICP_PAIN_SIGNALS:
+        if any(kw in text for kw in signal['keywords']):
+            matched_impacts.append(signal['smb_impact'])
+
+    if matched_impacts:
+        # Use the most specific ICP match (first matched)
+        smb = matched_impacts[0]
+    else:
+        # Fall back to topic-based template
+        smb = templates['smb']
+
     return {
-        'general_impact': templates['general'],
-        'smb_impact': templates['smb'],
+        'general_impact': general,
+        'smb_impact': smb,
     }
 
 

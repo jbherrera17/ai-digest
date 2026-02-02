@@ -1,0 +1,167 @@
+{
+  "audience_overview": {
+    "one_sentence_summary": "Independent clinics, counseling practices, and specialty care centers with 10\u2013200 employees, struggling with admin overload and compliance demands.",
+    "primary_identity": "Small Healthcare Organization",
+    "stage_of_business": "Established with stable revenue but constrained by staffing shortages and reimbursement pressures",
+    "location_majority": "Primarily U.S. with similar conditions in Canada and developed healthcare systems",
+    "demographics": {
+      "age_range": "",
+      "gender_split": "",
+      "education_level": ""
+    }
+  },
+  "psychographics": {
+    "core_desires": [
+      "Reduce administrative burden",
+      "Improve patient experience and retention",
+      "Integrate behavioral and physical health data",
+      "Ensure compliance with HIPAA and quality measures",
+      "Increase time available for patient care"
+    ],
+    "core_fears": [
+      "HIPAA violations or compliance breaches",
+      "Staff burnout and turnover",
+      "AI giving inaccurate or unsafe recommendations",
+      "Losing patient trust if technology feels impersonal"
+    ],
+    "core_values": [
+      "Patient-centered care",
+      "Ethical and bias-aware AI",
+      "Reliability and explainability",
+      "Support that reduces staff stress"
+    ]
+  },
+  "pain_points": {
+    "top_pains": [
+      "Excessive intake, scheduling, and EHR documentation",
+      "Difficulty sharing data across providers",
+      "Limited staff capacity",
+      "Regulatory reporting burdens",
+      "Patient dissatisfaction due to poor communication or delays"
+    ],
+    "symptoms": [
+      "Clinicians spending evenings charting",
+      "Receptionists overwhelmed with scheduling and calls",
+      "Patients stuck filling repetitive intake forms",
+      "Compliance staff scrambling before audits"
+    ],
+    "failed_attempts": [
+      "Clunky EHR systems",
+      "Hiring more admin staff",
+      "Outsourced billing or intake services",
+      "Generic chatbots or phone triage systems"
+    ]
+  },
+  "desired_transformation": {
+    "outcomes": [
+      "Smooth intake and scheduling",
+      "Interoperable systems connecting behavioral and physical health data",
+      "Staff focused on patients, not paperwork",
+      "Compliance built into daily workflows"
+    ],
+    "aspirational_identity": "A trusted, efficient, patient-centered practice that uses technology ethically to elevate care"
+  },
+  "beliefs_and_triggers": {
+    "limiting_beliefs": [
+      "AI is unsafe for patient data",
+      "Technology creates more work, not less",
+      "Patients won\u2019t like interacting with AI"
+    ],
+    "industry_myths": [
+      "Bigger EHR systems solve everything",
+      "AI is too experimental for healthcare",
+      "Patient care and automation don\u2019t mix"
+    ],
+    "buying_triggers": [
+      "Staff burnout reaches breaking point",
+      "Regulatory fines or audit scares",
+      "New patient growth outpacing admin capacity",
+      "Peers adopting AI successfully"
+    ]
+  },
+  "language_patterns": {
+    "keywords_used": [
+      "We\u2019re buried in paperwork",
+      "My staff is burning out",
+      "Patients are waiting too long",
+      "We need compliance built in, not bolted on"
+    ],
+    "slang_or_jargon": [
+      "HIPAA",
+      "Quality measures",
+      "Intake",
+      "Charting",
+      "Reimbursement",
+      "Compliance audit",
+      "EHR"
+    ],
+    "phrases_to_avoid": [
+      "Guaranteed compliance",
+      "AI that replaces your staff",
+      "One-size-fits-all solution"
+    ]
+  },
+  "emotional_journey": {
+    "current_state": "Overwhelmed by admin burden and compliance pressure",
+    "desired_state": "Relieved, confident, and patient-focused with compliance safeguarded"
+  },
+  "audience_segments": [
+    {
+      "segment_name": "Primary Care Clinics",
+      "unique_traits": [
+        "High patient volume",
+        "Broad service scope"
+      ],
+      "specific_pains": [
+        "Heavy intake and scheduling load",
+        "Physicians overloaded with charting"
+      ],
+      "specific_desires": [
+        "Streamlined intake",
+        "More time with patients"
+      ],
+      "cta_language_hints": [
+        "Free your clinicians from paperwork",
+        "Deliver smoother patient visits"
+      ]
+    },
+    {
+      "segment_name": "Behavioral Health Practices",
+      "unique_traits": [
+        "Focus on counseling/mental health",
+        "Integration needs with physical care"
+      ],
+      "specific_pains": [
+        "Difficulty sharing data",
+        "Compliance complexity"
+      ],
+      "specific_desires": [
+        "Integrated behavioral + physical health data",
+        "Patient experience consistency"
+      ],
+      "cta_language_hints": [
+        "Connect care across providers",
+        "Simplify compliance while improving care"
+      ]
+    },
+    {
+      "segment_name": "Specialty Clinics",
+      "unique_traits": [
+        "Focused services (dermatology, dentistry, rehab)",
+        "Often staff-constrained"
+      ],
+      "specific_pains": [
+        "Patient wait times",
+        "High admin-to-patient ratio"
+      ],
+      "specific_desires": [
+        "Efficient scheduling",
+        "Better patient communication"
+      ],
+      "cta_language_hints": [
+        "Reduce wait times and increase throughput",
+        "Keep patients engaged and satisfied"
+      ]
+    }
+  ]
+}
