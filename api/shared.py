@@ -96,6 +96,61 @@ RSS_FEEDS = {
         "priority": 2,
         "type": "newsletter",
     },
+    # --- Substack Subscriptions ---
+    "Nate's Newsletter": {
+        "url": "https://natesnewsletter.substack.com/feed",
+        "category": "Substack",
+        "priority": 2,
+        "type": "newsletter",
+    },
+    "Sergei AI": {
+        "url": "https://sergeiai.substack.com/feed",
+        "category": "Substack",
+        "priority": 2,
+        "type": "newsletter",
+    },
+    "The Algorithmic Bridge": {
+        "url": "https://www.thealgorithmicbridge.com/feed",
+        "category": "Substack",
+        "priority": 2,
+        "type": "newsletter",
+    },
+    "ByteByteGo": {
+        "url": "https://blog.bytebytego.com/feed",
+        "category": "Substack",
+        "priority": 2,
+        "type": "newsletter",
+    },
+    "Concept Bureau": {
+        "url": "https://conceptbureau.substack.com/feed",
+        "category": "Substack",
+        "priority": 2,
+        "type": "newsletter",
+    },
+    "AI Search": {
+        "url": "https://aisearch.substack.com/feed",
+        "category": "Substack",
+        "priority": 2,
+        "type": "newsletter",
+    },
+    "AI Supremacy": {
+        "url": "https://www.ai-supremacy.com/feed",
+        "category": "Substack",
+        "priority": 2,
+        "type": "newsletter",
+    },
+    "Latent Space": {
+        "url": "https://www.latent.space/feed",
+        "category": "Substack",
+        "priority": 1,
+        "type": "newsletter",
+    },
+    "Excellent Prompts": {
+        "url": "https://excellentprompts.substack.com/feed",
+        "category": "Substack",
+        "priority": 2,
+        "type": "newsletter",
+    },
     # --- Company Blogs: AI Labs ---
     "Anthropic Blog": {
         "url": "https://www.anthropic.com/research/rss.xml",
