@@ -5,7 +5,9 @@
     { "source": "/api/admin/categories/:path*", "destination": "/api/admin/categories" },
     { "source": "/api/admin/discover/:path*", "destination": "/api/admin/discover" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/digest", "destination": "/public/digest.html" },
     { "source": "/admin", "destination": "/public/admin.html" },
+    { "source": "/", "destination": "/public/index.html" },
     { "source": "/(.*)", "destination": "/public/index.html" }
   ]
 }
