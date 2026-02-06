@@ -12,6 +12,49 @@
             background: #f0f2f5;
             min-height: 100vh;
         }
+        /* --- Navigation Bar --- */
+        .navbar {
+            background: #1a1a2e;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+        }
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .navbar-brand svg {
+            width: 28px;
+            height: 28px;
+        }
+        .navbar-links {
+            display: flex;
+            gap: 8px;
+        }
+        .navbar-link {
+            padding: 8px 16px;
+            border-radius: 6px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .navbar-link:hover {
+            color: white;
+            background: rgba(255,255,255,0.1);
+        }
+        .navbar-link.active {
+            color: white;
+            background: #667eea;
+        }
         /* --- Top Bar --- */
         .topbar {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -253,9 +296,24 @@
     </style>
 </head>
 <body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 11a9 9 0 0 1 9 9"></path>
+                <path d="M4 4a16 16 0 0 1 16 16"></path>
+                <circle cx="5" cy="19" r="1"></circle>
+            </svg>
+            AIDigest
+        </a>
+        <div class="navbar-links">
+            <a href="/" class="navbar-link active">Digest</a>
+            <a href="/admin" class="navbar-link">Admin</a>
+        </div>
+    </nav>
+
     <div class="topbar">
         <h1>AI News Digest Generator</h1>
-        <p>30+ AI sources — news, newsletters, and company blogs</p>
+        <p>50+ AI sources — news, newsletters, and company blogs</p>
     </div>
 
     <div class="layout">

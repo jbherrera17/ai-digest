@@ -33,10 +33,60 @@
             line-height: 1.5;
         }
 
+        /* Navbar */
+        .navbar {
+            background: #1a1a2e;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+        }
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .navbar-brand svg {
+            width: 28px;
+            height: 28px;
+        }
+        .navbar-links {
+            display: flex;
+            gap: 8px;
+        }
+        .navbar-link {
+            padding: 8px 16px;
+            border-radius: 6px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .navbar-link:hover {
+            color: white;
+            background: rgba(255,255,255,0.1);
+        }
+        .navbar-link.active {
+            color: white;
+            background: #667eea;
+        }
+
         /* Layout */
         .app {
             display: flex;
             min-height: 100vh;
+            padding-top: 56px;
         }
 
         .sidebar {
@@ -45,7 +95,8 @@
             color: white;
             padding: 1.5rem;
             position: fixed;
-            height: 100vh;
+            top: 56px;
+            height: calc(100vh - 56px);
             overflow-y: auto;
         }
 
@@ -590,7 +641,8 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            min-height: calc(100vh - 56px);
+            margin-top: 56px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
@@ -649,6 +701,22 @@
     </style>
 </head>
 <body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 11a9 9 0 0 1 9 9"></path>
+                <path d="M4 4a16 16 0 0 1 16 16"></path>
+                <circle cx="5" cy="19" r="1"></circle>
+            </svg>
+            AIDigest
+        </a>
+        <div class="navbar-links">
+            <a href="/" class="navbar-link">Digest</a>
+            <a href="/admin" class="navbar-link active">Admin</a>
+        </div>
+    </nav>
+
     <!-- Auth Screen -->
     <div id="authScreen" class="auth-screen">
         <div class="auth-card">
