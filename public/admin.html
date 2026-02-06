@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIDigest Admin</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-500: #6b7280;
+            --gray-700: #374151;
+            --gray-900: #111827;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-900);
+            line-height: 1.5;
+        }
+
+        /* Layout */
+        .app {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 240px;
+            background: var(--gray-900);
+            color: white;
+            padding: 1.5rem;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar h1 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar .subtitle {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-bottom: 2rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            color: var(--gray-300);
+            cursor: pointer;
+            margin-bottom: 0.25rem;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-item svg {
+            width: 20px;
+            height: 20px;
+            margin-right: 0.75rem;
+        }
+
+        .main {
+            flex: 1;
+            margin-left: 240px;
+            padding: 2rem;
+        }
+
+        /* Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .stat-card .label {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-300);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .btn svg {
+            width: 16px;
+            height: 16px;
+            margin-right: 0.5rem;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 0.25rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        th {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--gray-500);
+        }
+
+        td {
+            font-size: 0.875rem;
+        }
+
+        tr:hover {
+            background: var(--gray-50);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-category {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        /* Toggle Switch */
+        .toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--gray-300);
+            border-radius: 22px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 2px;
+            bottom: 2px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle input:checked + .toggle-slider {
+            background: var(--success);
+        }
+
+        .toggle input:checked + .toggle-slider:before {
+            transform: translateX(18px);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--gray-200);
+            margin-bottom: 1.5rem;
+        }
+
+        .tab {
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--gray-500);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+        }
+
+        .tab:hover {
+            color: var(--gray-700);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 0.75rem;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .modal-header h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray-500);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        /* Discovery Grid */
+        .discovery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .discovery-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .discovery-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+        }
+
+        .discovery-card.selected {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .discovery-card h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .discovery-card p {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Search */
+        .search-box {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .search-box svg {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            color: var(--gray-500);
+        }
+
+        /* ICP Editor */
+        .icp-text-input {
+            min-height: 150px;
+            font-family: inherit;
+        }
+
+        .icp-preview {
+            background: var(--gray-50);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .icp-preview h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .icp-preview ul {
+            margin: 0;
+            padding-left: 1.25rem;
+            font-size: 0.875rem;
+        }
+
+        .icp-preview li {
+            margin-bottom: 0.25rem;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            z-index: 200;
+        }
+
+        .toast {
+            background: var(--gray-900);
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success {
+            background: var(--success);
+        }
+
+        .toast.error {
+            background: var(--danger);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Section Hidden */
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* Auth Screen */
+        .auth-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .auth-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .auth-card h1 {
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .auth-card p {
+            text-align: center;
+            color: var(--gray-500);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Niche Selection */
+        .niche-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .niche-card {
+            background: var(--gray-50);
+            border: 2px solid var(--gray-200);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .niche-card:hover {
+            border-color: var(--primary);
+        }
+
+        .niche-card.selected {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .niche-card h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Screen -->
+    <div id="authScreen" class="auth-screen">
+        <div class="auth-card">
+            <h1>AIDigest Admin</h1>
+            <p>Enter your admin token to continue</p>
+            <div class="form-group">
+                <label for="adminToken">Admin Token</label>
+                <input type="password" id="adminToken" placeholder="Enter token or leave blank for dev mode">
+            </div>
+            <button class="btn btn-primary" style="width: 100%" onclick="authenticate()">
+                Sign In
+            </button>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="app" style="display: none">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <h1>AIDigest</h1>
+            <p class="subtitle">Configuration Panel</p>
+
+            <div class="nav-item active" data-section="dashboard">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                </svg>
+                Dashboard
+            </div>
+
+            <div class="nav-item" data-section="feeds">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7m-6 0a1 1 0 11-2 0 1 1 0 012 0z"/>
+                </svg>
+                Feeds
+            </div>
+
+            <div class="nav-item" data-section="discover">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                Discover
+            </div>
+
+            <div class="nav-item" data-section="icps">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                ICP Profiles
+            </div>
+
+            <div class="nav-item" data-section="categories">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                </svg>
+                Categories
+            </div>
+
+            <div style="margin-top: auto; padding-top: 2rem;">
+                <div class="nav-item" onclick="window.location.href='/'">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                    </svg>
+                    View Digest
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Dashboard Section -->
+            <section id="sectionDashboard" class="section active">
+                <div class="page-header">
+                    <h2>Dashboard</h2>
+                </div>
+
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="label">Total Feeds</div>
+                        <div class="value" id="statTotalFeeds">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Active Feeds</div>
+                        <div class="value" id="statActiveFeeds">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Categories</div>
+                        <div class="value" id="statCategories">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">ICP Profiles</div>
+                        <div class="value" id="statICPs">-</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Quick Actions</h3>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap">
+                        <button class="btn btn-primary" onclick="showSection('feeds'); showFeedModal()">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add Feed
+                        </button>
+                        <button class="btn btn-secondary" onclick="showSection('discover')">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            Discover Feeds
+                        </button>
+                        <button class="btn btn-secondary" onclick="showSection('icps'); showICPModal()">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add ICP Profile
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Feeds Section -->
+            <section id="sectionFeeds" class="section">
+                <div class="page-header">
+                    <h2>Feed Management</h2>
+                    <button class="btn btn-primary" onclick="showFeedModal()">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Add Feed
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="search-box">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <input type="text" id="feedSearch" placeholder="Search feeds..." oninput="filterFeeds()">
+                    </div>
+
+                    <div class="table-container">
+                        <table id="feedsTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Type</th>
+                                    <th>Priority</th>
+                                    <th>Active</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="feedsTableBody">
+                                <tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Discover Section -->
+            <section id="sectionDiscover" class="section">
+                <div class="page-header">
+                    <h2>Discover Feeds</h2>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem">Select Your Niche</h3>
+                    <p style="color: var(--gray-500); margin-bottom: 1rem; font-size: 0.875rem">
+                        Choose your industry to see recommended feeds, or search for specific topics.
+                    </p>
+
+                    <div class="niche-grid" id="nicheGrid">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <div class="search-box">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        <input type="text" id="discoverSearch" placeholder="Search for feeds..." onkeyup="searchFeeds(event)">
+                    </div>
+                </div>
+
+                <div class="card" id="discoverResults" style="display: none">
+                    <div class="card-header">
+                        <h3>Recommended Feeds</h3>
+                        <button class="btn btn-primary btn-sm" onclick="addSelectedFeeds()">
+                            Add Selected (<span id="selectedCount">0</span>)
+                        </button>
+                    </div>
+
+                    <div class="discovery-grid" id="discoveryGrid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- ICPs Section -->
+            <section id="sectionIcps" class="section">
+                <div class="page-header">
+                    <h2>ICP Profiles</h2>
+                    <button class="btn btn-primary" onclick="showICPModal()">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Add Profile
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="table-container">
+                        <table id="icpsTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Source</th>
+                                    <th>Pain Points</th>
+                                    <th>Default</th>
+                                    <th>Active</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="icpsTableBody">
+                                <tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Categories Section -->
+            <section id="sectionCategories" class="section">
+                <div class="page-header">
+                    <h2>Categories</h2>
+                    <button class="btn btn-primary" onclick="showCategoryModal()">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Add Category
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="table-container">
+                        <table id="categoriesTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Color</th>
+                                    <th>Order</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoriesTableBody">
+                                <tr><td colspan="4" class="loading"><div class="spinner"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Feed Modal -->
+    <div class="modal-overlay" id="feedModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="feedModalTitle">Add Feed</h3>
+                <button class="modal-close" onclick="closeFeedModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="feedId">
+                <div class="form-group">
+                    <label for="feedName">Name *</label>
+                    <input type="text" id="feedName" placeholder="e.g., TechCrunch AI">
+                </div>
+                <div class="form-group">
+                    <label for="feedUrl">RSS URL *</label>
+                    <input type="url" id="feedUrl" placeholder="https://example.com/feed.xml">
+                    <button class="btn btn-secondary btn-sm" style="margin-top: 0.5rem" onclick="validateFeed()">
+                        Validate URL
+                    </button>
+                    <div id="feedValidation" style="margin-top: 0.5rem; font-size: 0.875rem"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="feedCategory">Category</label>
+                        <select id="feedCategory">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="feedType">Type</label>
+                        <select id="feedType">
+                            <option value="news">News</option>
+                            <option value="newsletter">Newsletter</option>
+                            <option value="blog">Blog</option>
+                            <option value="substack">Substack</option>
+                            <option value="medium">Medium</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="feedPriority">Priority</label>
+                    <select id="feedPriority">
+                        <option value="1">High (1)</option>
+                        <option value="2" selected>Normal (2)</option>
+                        <option value="3">Low (3)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="feedDescription">Description</label>
+                    <textarea id="feedDescription" rows="2" placeholder="Optional description..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeFeedModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveFeed()">Save Feed</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ICP Modal -->
+    <div class="modal-overlay" id="icpModal">
+        <div class="modal" style="max-width: 600px">
+            <div class="modal-header">
+                <h3 id="icpModalTitle">Add ICP Profile</h3>
+                <button class="modal-close" onclick="closeICPModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="icpId">
+
+                <div class="tabs">
+                    <div class="tab active" data-tab="text" onclick="switchICPTab('text')">Paste Text</div>
+                    <div class="tab" data-tab="json" onclick="switchICPTab('json')">Upload JSON</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="icpName">Profile Name *</label>
+                    <input type="text" id="icpName" placeholder="e.g., Coaches & Consultants">
+                </div>
+
+                <div id="icpTextTab">
+                    <div class="form-group">
+                        <label for="icpText">Describe Your ICP</label>
+                        <textarea id="icpText" class="icp-text-input" placeholder="Describe your ideal customer profile. Include:
+- Who they are (role, industry, company size)
+- Their main challenges and pain points
+- What they're trying to achieve
+- Keywords they use
+
+Example: I work with small business coaches who struggle with content marketing and scaling beyond 1:1 sessions. They want to build passive income through courses but don't have time..."></textarea>
+                    </div>
+                    <button class="btn btn-secondary" onclick="parseICPText()">Parse & Preview</button>
+                    <div id="icpPreview" class="icp-preview" style="display: none">
+                        <h4>Extracted Profile</h4>
+                        <div id="icpPreviewContent"></div>
+                    </div>
+                </div>
+
+                <div id="icpJsonTab" style="display: none">
+                    <div class="form-group">
+                        <label for="icpJsonFile">Upload JSON File</label>
+                        <input type="file" id="icpJsonFile" accept=".json" onchange="handleICPFile(event)">
+                    </div>
+                    <div class="form-group">
+                        <label for="icpJsonData">Or Paste JSON</label>
+                        <textarea id="icpJsonData" rows="10" placeholder='{"audience_overview": {...}, "pain_points": {...}}'></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="icpDescription">Description</label>
+                    <input type="text" id="icpDescription" placeholder="Brief description of this ICP">
+                </div>
+
+                <div class="form-group">
+                    <label class="toggle" style="display: flex; align-items: center; gap: 0.5rem">
+                        <span style="font-size: 0.875rem">Set as Default</span>
+                        <input type="checkbox" id="icpDefault">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeICPModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveICP()">Save Profile</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Modal -->
+    <div class="modal-overlay" id="categoryModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="categoryModalTitle">Add Category</h3>
+                <button class="modal-close" onclick="closeCategoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="categoryId">
+                <div class="form-group">
+                    <label for="categoryName">Name *</label>
+                    <input type="text" id="categoryName" placeholder="e.g., Tech News">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="categoryColor">Color</label>
+                        <input type="color" id="categoryColor" value="#6366f1">
+                    </div>
+                    <div class="form-group">
+                        <label for="categoryOrder">Display Order</label>
+                        <input type="number" id="categoryOrder" value="0" min="0">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCategoryModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveCategory()">Save Category</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // State
+        let authToken = '';
+        let feeds = [];
+        let categories = [];
+        let icps = [];
+        let selectedDiscoveryFeeds = new Set();
+        let currentICPTab = 'text';
+        let parsedICPData = null;
+
+        // API Helper
+        async function api(endpoint, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`,
+                ...options.headers,
+            };
+
+            const response = await fetch(`/api/admin/${endpoint}`, {
+                ...options,
+                headers,
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'API Error');
+            }
+
+            return data;
+        }
+
+        // Toast notifications
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Authentication
+        function authenticate() {
+            authToken = document.getElementById('adminToken').value;
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'flex';
+            loadDashboard();
+        }
+
+        // Navigation
+        document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+            item.addEventListener('click', () => {
+                showSection(item.dataset.section);
+            });
+        });
+
+        function showSection(section) {
+            // Update nav
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelector(`.nav-item[data-section="${section}"]`)?.classList.add('active');
+
+            // Update sections
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(`section${section.charAt(0).toUpperCase() + section.slice(1)}`).classList.add('active');
+
+            // Load data
+            if (section === 'feeds') loadFeeds();
+            if (section === 'icps') loadICPs();
+            if (section === 'categories') loadCategories();
+            if (section === 'discover') loadDiscovery();
+        }
+
+        // Dashboard
+        async function loadDashboard() {
+            try {
+                const [feedsData, icpsData, categoriesData] = await Promise.all([
+                    api('feeds'),
+                    api('icps'),
+                    api('categories'),
+                ]);
+
+                feeds = feedsData.feeds || [];
+                icps = icpsData.profiles || [];
+                categories = categoriesData.categories || [];
+
+                document.getElementById('statTotalFeeds').textContent = feeds.length;
+                document.getElementById('statActiveFeeds').textContent = feeds.filter(f => f.is_active).length;
+                document.getElementById('statCategories').textContent = categories.length;
+                document.getElementById('statICPs').textContent = icps.length;
+
+                populateCategorySelect();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // Feeds
+        async function loadFeeds() {
+            try {
+                const data = await api('feeds');
+                feeds = data.feeds || [];
+                renderFeedsTable();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        function renderFeedsTable() {
+            const tbody = document.getElementById('feedsTableBody');
+            const searchTerm = document.getElementById('feedSearch').value.toLowerCase();
+
+            const filtered = feeds.filter(f =>
+                f.name.toLowerCase().includes(searchTerm) ||
+                f.category.toLowerCase().includes(searchTerm)
+            );
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-500)">No feeds found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(feed => `
+                <tr>
+                    <td>
+                        <strong>${escapeHtml(feed.name)}</strong>
+                        <br><small style="color: var(--gray-500)">${escapeHtml(feed.url.substring(0, 50))}...</small>
+                    </td>
+                    <td><span class="badge badge-category">${escapeHtml(feed.category)}</span></td>
+                    <td>${escapeHtml(feed.feed_type || 'news')}</td>
+                    <td>${feed.priority}</td>
+                    <td>
+                        <label class="toggle">
+                            <input type="checkbox" ${feed.is_active ? 'checked' : ''} onchange="toggleFeed('${feed.id}', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-sm" onclick="editFeed('${feed.id}')">Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteFeed('${feed.id}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterFeeds() {
+            renderFeedsTable();
+        }
+
+        function populateCategorySelect() {
+            const select = document.getElementById('feedCategory');
+            select.innerHTML = categories.map(c =>
+                `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`
+            ).join('');
+        }
+
+        function showFeedModal(feedId = null) {
+            const modal = document.getElementById('feedModal');
+            const title = document.getElementById('feedModalTitle');
+
+            if (feedId) {
+                const feed = feeds.find(f => f.id === feedId);
+                if (feed) {
+                    title.textContent = 'Edit Feed';
+                    document.getElementById('feedId').value = feed.id;
+                    document.getElementById('feedName').value = feed.name;
+                    document.getElementById('feedUrl').value = feed.url;
+                    document.getElementById('feedCategory').value = feed.category;
+                    document.getElementById('feedType').value = feed.feed_type || 'news';
+                    document.getElementById('feedPriority').value = feed.priority;
+                    document.getElementById('feedDescription').value = feed.description || '';
+                }
+            } else {
+                title.textContent = 'Add Feed';
+                document.getElementById('feedId').value = '';
+                document.getElementById('feedName').value = '';
+                document.getElementById('feedUrl').value = '';
+                document.getElementById('feedType').value = 'news';
+                document.getElementById('feedPriority').value = '2';
+                document.getElementById('feedDescription').value = '';
+            }
+
+            document.getElementById('feedValidation').innerHTML = '';
+            modal.classList.add('active');
+        }
+
+        function closeFeedModal() {
+            document.getElementById('feedModal').classList.remove('active');
+        }
+
+        function editFeed(id) {
+            showFeedModal(id);
+        }
+
+        async function validateFeed() {
+            const url = document.getElementById('feedUrl').value;
+            const validation = document.getElementById('feedValidation');
+
+            if (!url) {
+                validation.innerHTML = '<span style="color: var(--danger)">Please enter a URL</span>';
+                return;
+            }
+
+            validation.innerHTML = '<span style="color: var(--gray-500)">Validating...</span>';
+
+            try {
+                const result = await api('feeds/validate', {
+                    method: 'POST',
+                    body: JSON.stringify({ url }),
+                });
+
+                if (result.valid) {
+                    validation.innerHTML = `
+                        <span style="color: var(--success)">✓ Valid feed: ${escapeHtml(result.title)}</span>
+                        <br><small style="color: var(--gray-500)">${result.entry_count} entries found</small>
+                    `;
+                    if (!document.getElementById('feedName').value) {
+                        document.getElementById('feedName').value = result.title;
+                    }
+                } else {
+                    validation.innerHTML = `<span style="color: var(--danger)">✗ Invalid feed: ${escapeHtml(result.error)}</span>`;
+                }
+            } catch (error) {
+                validation.innerHTML = `<span style="color: var(--danger)">✗ Error: ${escapeHtml(error.message)}</span>`;
+            }
+        }
+
+        async function saveFeed() {
+            const id = document.getElementById('feedId').value;
+            const data = {
+                name: document.getElementById('feedName').value,
+                url: document.getElementById('feedUrl').value,
+                category: document.getElementById('feedCategory').value,
+                feed_type: document.getElementById('feedType').value,
+                priority: parseInt(document.getElementById('feedPriority').value),
+                description: document.getElementById('feedDescription').value,
+            };
+
+            if (!data.name || !data.url) {
+                showToast('Name and URL are required', 'error');
+                return;
+            }
+
+            try {
+                if (id) {
+                    await api(`feeds/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+                    showToast('Feed updated successfully', 'success');
+                } else {
+                    await api('feeds', { method: 'POST', body: JSON.stringify(data) });
+                    showToast('Feed created successfully', 'success');
+                }
+                closeFeedModal();
+                loadFeeds();
+                loadDashboard();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function toggleFeed(id, isActive) {
+            try {
+                await api(`feeds/${id}/toggle`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ is_active: isActive }),
+                });
+                showToast(`Feed ${isActive ? 'activated' : 'deactivated'}`, 'success');
+                loadDashboard();
+            } catch (error) {
+                showToast(error.message, 'error');
+                loadFeeds();
+            }
+        }
+
+        async function deleteFeed(id) {
+            if (!confirm('Are you sure you want to delete this feed?')) return;
+
+            try {
+                await api(`feeds/${id}`, { method: 'DELETE' });
+                showToast('Feed deleted', 'success');
+                loadFeeds();
+                loadDashboard();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // Discovery
+        async function loadDiscovery() {
+            try {
+                const data = await api('discover');
+                renderNicheGrid(data.niches);
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        function renderNicheGrid(niches) {
+            const grid = document.getElementById('nicheGrid');
+            grid.innerHTML = niches.map(niche => `
+                <div class="niche-card" onclick="selectNiche('${niche.id}', this)">
+                    <h4>${escapeHtml(niche.name)}</h4>
+                </div>
+            `).join('');
+        }
+
+        async function selectNiche(nicheId, element) {
+            // Update selection UI
+            document.querySelectorAll('.niche-card').forEach(c => c.classList.remove('selected'));
+            element.classList.add('selected');
+
+            // Load recommendations
+            try {
+                const data = await api(`discover/niche/${nicheId}`);
+                renderDiscoveryResults(data.suggestions);
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function searchFeeds(event) {
+            if (event.key !== 'Enter') return;
+
+            const query = document.getElementById('discoverSearch').value;
+            if (!query) return;
+
+            try {
+                const data = await api(`discover/search?q=${encodeURIComponent(query)}`);
+                renderDiscoveryResults(data.results);
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        function renderDiscoveryResults(suggestions) {
+            const container = document.getElementById('discoverResults');
+            const grid = document.getElementById('discoveryGrid');
+
+            selectedDiscoveryFeeds.clear();
+            updateSelectedCount();
+
+            if (suggestions.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            container.style.display = 'block';
+            grid.innerHTML = suggestions.map(feed => `
+                <div class="discovery-card" onclick="toggleDiscoveryFeed(this, '${escapeHtml(feed.url)}')" data-feed='${JSON.stringify(feed).replace(/'/g, "\\'")}'>
+                    <h4>${escapeHtml(feed.name)}</h4>
+                    <p>${escapeHtml(feed.description || 'No description')}</p>
+                    <span class="badge badge-category">${escapeHtml(feed.category)}</span>
+                </div>
+            `).join('');
+        }
+
+        function toggleDiscoveryFeed(element, url) {
+            element.classList.toggle('selected');
+            if (selectedDiscoveryFeeds.has(url)) {
+                selectedDiscoveryFeeds.delete(url);
+            } else {
+                selectedDiscoveryFeeds.add(url);
+            }
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            document.getElementById('selectedCount').textContent = selectedDiscoveryFeeds.size;
+        }
+
+        async function addSelectedFeeds() {
+            if (selectedDiscoveryFeeds.size === 0) {
+                showToast('No feeds selected', 'error');
+                return;
+            }
+
+            const feedsToAdd = [];
+            document.querySelectorAll('.discovery-card.selected').forEach(card => {
+                feedsToAdd.push(JSON.parse(card.dataset.feed));
+            });
+
+            try {
+                const result = await api('discover/add', {
+                    method: 'POST',
+                    body: JSON.stringify({ feeds: feedsToAdd }),
+                });
+                showToast(`Added ${result.added} feeds`, 'success');
+                selectedDiscoveryFeeds.clear();
+                updateSelectedCount();
+                document.querySelectorAll('.discovery-card.selected').forEach(c => c.classList.remove('selected'));
+                loadDashboard();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // ICPs
+        async function loadICPs() {
+            try {
+                const data = await api('icps');
+                icps = data.profiles || [];
+                renderICPsTable();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        function renderICPsTable() {
+            const tbody = document.getElementById('icpsTableBody');
+
+            if (icps.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-500)">No ICP profiles yet</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = icps.map(icp => `
+                <tr>
+                    <td><strong>${escapeHtml(icp.name)}</strong></td>
+                    <td><span class="badge badge-category">${escapeHtml(icp.source_type || 'json')}</span></td>
+                    <td>${(icp.pain_points || []).length} pain points</td>
+                    <td>${icp.is_default ? '<span class="badge badge-active">Default</span>' : '-'}</td>
+                    <td>
+                        <label class="toggle">
+                            <input type="checkbox" ${icp.is_active ? 'checked' : ''} onchange="toggleICP('${icp.id}', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-sm" onclick="editICP('${icp.id}')">Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteICP('${icp.id}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function showICPModal(icpId = null) {
+            const modal = document.getElementById('icpModal');
+            const title = document.getElementById('icpModalTitle');
+
+            parsedICPData = null;
+            document.getElementById('icpPreview').style.display = 'none';
+
+            if (icpId) {
+                const icp = icps.find(i => i.id === icpId);
+                if (icp) {
+                    title.textContent = 'Edit ICP Profile';
+                    document.getElementById('icpId').value = icp.id;
+                    document.getElementById('icpName').value = icp.name;
+                    document.getElementById('icpDescription').value = icp.description || '';
+                    document.getElementById('icpDefault').checked = icp.is_default;
+
+                    if (icp.source_type === 'text' && icp.data?.raw_text) {
+                        switchICPTab('text');
+                        document.getElementById('icpText').value = icp.data.raw_text;
+                    } else {
+                        switchICPTab('json');
+                        document.getElementById('icpJsonData').value = JSON.stringify(icp.data, null, 2);
+                    }
+                }
+            } else {
+                title.textContent = 'Add ICP Profile';
+                document.getElementById('icpId').value = '';
+                document.getElementById('icpName').value = '';
+                document.getElementById('icpDescription').value = '';
+                document.getElementById('icpDefault').checked = false;
+                document.getElementById('icpText').value = '';
+                document.getElementById('icpJsonData').value = '';
+                switchICPTab('text');
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeICPModal() {
+            document.getElementById('icpModal').classList.remove('active');
+        }
+
+        function editICP(id) {
+            showICPModal(id);
+        }
+
+        function switchICPTab(tab) {
+            currentICPTab = tab;
+            document.querySelectorAll('#icpModal .tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.tab === tab);
+            });
+            document.getElementById('icpTextTab').style.display = tab === 'text' ? 'block' : 'none';
+            document.getElementById('icpJsonTab').style.display = tab === 'json' ? 'block' : 'none';
+        }
+
+        async function parseICPText() {
+            const text = document.getElementById('icpText').value;
+            if (!text) {
+                showToast('Please enter some text', 'error');
+                return;
+            }
+
+            try {
+                const result = await api('icps/parse', {
+                    method: 'POST',
+                    body: JSON.stringify({ text }),
+                });
+
+                parsedICPData = result.data;
+
+                const preview = document.getElementById('icpPreview');
+                const content = document.getElementById('icpPreviewContent');
+
+                const painPoints = parsedICPData.pain_points?.top_pains || [];
+                const keywords = parsedICPData.language_patterns?.keywords_used || [];
+                const identity = parsedICPData.audience_overview?.primary_identity || 'Not detected';
+
+                content.innerHTML = `
+                    <p><strong>Identity:</strong> ${escapeHtml(identity)}</p>
+                    <p><strong>Pain Points (${painPoints.length}):</strong></p>
+                    <ul>${painPoints.map(p => `<li>${escapeHtml(p)}</li>`).join('') || '<li>None detected</li>'}</ul>
+                    <p><strong>Keywords (${keywords.length}):</strong> ${keywords.map(k => `<span class="badge badge-category" style="margin-right: 0.25rem">${escapeHtml(k)}</span>`).join('') || 'None detected'}</p>
+                `;
+
+                preview.style.display = 'block';
+                showToast('Text parsed successfully', 'success');
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        function handleICPFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('icpJsonData').value = e.target.result;
+            };
+            reader.readAsText(file);
+        }
+
+        async function saveICP() {
+            const id = document.getElementById('icpId').value;
+            const name = document.getElementById('icpName').value;
+
+            if (!name) {
+                showToast('Name is required', 'error');
+                return;
+            }
+
+            let data;
+            let sourceType;
+
+            if (currentICPTab === 'text') {
+                if (!parsedICPData) {
+                    const text = document.getElementById('icpText').value;
+                    if (!text) {
+                        showToast('Please enter ICP text and parse it', 'error');
+                        return;
+                    }
+                    // Parse on save if not already parsed
+                    try {
+                        const result = await api('icps/parse', {
+                            method: 'POST',
+                            body: JSON.stringify({ text }),
+                        });
+                        parsedICPData = result.data;
+                    } catch (error) {
+                        showToast(error.message, 'error');
+                        return;
+                    }
+                }
+                data = parsedICPData;
+                sourceType = 'text';
+            } else {
+                const jsonStr = document.getElementById('icpJsonData').value;
+                try {
+                    data = JSON.parse(jsonStr);
+                } catch {
+                    showToast('Invalid JSON', 'error');
+                    return;
+                }
+                sourceType = 'json';
+            }
+
+            const payload = {
+                name,
+                description: document.getElementById('icpDescription').value,
+                data,
+                source_type: sourceType,
+                is_default: document.getElementById('icpDefault').checked,
+            };
+
+            try {
+                if (id) {
+                    await api(`icps/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+                    showToast('ICP profile updated', 'success');
+                } else {
+                    await api('icps', { method: 'POST', body: JSON.stringify(payload) });
+                    showToast('ICP profile created', 'success');
+                }
+                closeICPModal();
+                loadICPs();
+                loadDashboard();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function toggleICP(id, isActive) {
+            try {
+                await api(`icps/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ is_active: isActive }),
+                });
+                showToast(`ICP ${isActive ? 'activated' : 'deactivated'}`, 'success');
+            } catch (error) {
+                showToast(error.message, 'error');
+                loadICPs();
+            }
+        }
+
+        async function deleteICP(id) {
+            if (!confirm('Are you sure you want to delete this ICP profile?')) return;
+
+            try {
+                await api(`icps/${id}`, { method: 'DELETE' });
+                showToast('ICP profile deleted', 'success');
+                loadICPs();
+                loadDashboard();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // Categories
+        async function loadCategories() {
+            try {
+                const data = await api('categories');
+                categories = data.categories || [];
+                renderCategoriesTable();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        function renderCategoriesTable() {
+            const tbody = document.getElementById('categoriesTableBody');
+
+            tbody.innerHTML = categories.map(cat => `
+                <tr>
+                    <td><strong>${escapeHtml(cat.name)}</strong></td>
+                    <td><span style="display: inline-block; width: 20px; height: 20px; background: ${cat.color}; border-radius: 4px"></span></td>
+                    <td>${cat.display_order}</td>
+                    <td>
+                        <button class="btn btn-secondary btn-sm" onclick="editCategory('${cat.id}')">Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteCategory('${cat.id}')">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function showCategoryModal(categoryId = null) {
+            const modal = document.getElementById('categoryModal');
+            const title = document.getElementById('categoryModalTitle');
+
+            if (categoryId) {
+                const cat = categories.find(c => c.id === categoryId);
+                if (cat) {
+                    title.textContent = 'Edit Category';
+                    document.getElementById('categoryId').value = cat.id;
+                    document.getElementById('categoryName').value = cat.name;
+                    document.getElementById('categoryColor').value = cat.color;
+                    document.getElementById('categoryOrder').value = cat.display_order;
+                }
+            } else {
+                title.textContent = 'Add Category';
+                document.getElementById('categoryId').value = '';
+                document.getElementById('categoryName').value = '';
+                document.getElementById('categoryColor').value = '#6366f1';
+                document.getElementById('categoryOrder').value = '0';
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('categoryModal').classList.remove('active');
+        }
+
+        function editCategory(id) {
+            showCategoryModal(id);
+        }
+
+        async function saveCategory() {
+            const id = document.getElementById('categoryId').value;
+            const data = {
+                name: document.getElementById('categoryName').value,
+                color: document.getElementById('categoryColor').value,
+                display_order: parseInt(document.getElementById('categoryOrder').value),
+            };
+
+            if (!data.name) {
+                showToast('Name is required', 'error');
+                return;
+            }
+
+            try {
+                if (id) {
+                    await api(`categories/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+                    showToast('Category updated', 'success');
+                } else {
+                    await api('categories', { method: 'POST', body: JSON.stringify(data) });
+                    showToast('Category created', 'success');
+                }
+                closeCategoryModal();
+                loadCategories();
+                loadDashboard();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function deleteCategory(id) {
+            if (!confirm('Are you sure you want to delete this category?')) return;
+
+            try {
+                await api(`categories/${id}`, { method: 'DELETE' });
+                showToast('Category deleted', 'success');
+                loadCategories();
+                loadDashboard();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // Utility
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[m]));
+        }
+
+        // Check for existing session
+        if (localStorage.getItem('aidigest_admin_token')) {
+            authToken = localStorage.getItem('aidigest_admin_token');
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'flex';
+            loadDashboard();
+        }
+    </script>
+</body>
+</html>

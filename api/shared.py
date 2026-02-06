@@ -529,16 +529,65 @@ def calculate_viral_score(article):
     return min(score * 2, 10)
 
 
+def get_icp_pain_signals():
+    """
+    Get ICP pain signals, trying database first then falling back to hardcoded.
+
+    Returns list of dicts with 'keywords' and 'smb_impact' keys.
+    """
+    import os
+    if os.environ.get('USE_DATABASE', 'false').lower() == 'true':
+        try:
+            from api.lib.supabase import get_default_icp_profile
+            profile = get_default_icp_profile()
+            if profile and profile.get('data'):
+                data = profile['data']
+                signals = []
+
+                # Extract pain points and create impact signals
+                pain_points = data.get('pain_points', {}).get('top_pains', [])
+                keywords = data.get('language_patterns', {}).get('keywords_used', [])
+                audience = data.get('audience_overview', {}).get('primary_identity', 'your business')
+
+                # Generate dynamic signals from ICP data
+                for pain in pain_points[:5]:  # Top 5 pain points
+                    # Extract key terms from pain point
+                    pain_keywords = [w.lower() for w in pain.split() if len(w) > 4][:3]
+                    if pain_keywords:
+                        signals.append({
+                            'keywords': pain_keywords,
+                            'smb_impact': f"For {audience} dealing with {pain.lower()}, this development could offer relevant solutions or insights. Evaluate how it addresses this specific challenge in your business context.",
+                        })
+
+                # Add keyword-based signals
+                if keywords:
+                    signals.append({
+                        'keywords': [k.lower() for k in keywords[:10]],
+                        'smb_impact': f"This touches on topics relevant to {audience}. Consider how these developments apply to your specific industry context and operational needs.",
+                    })
+
+                if signals:
+                    return signals
+        except Exception as e:
+            print(f"Error loading ICP from database: {e}")
+
+    # Fall back to hardcoded signals
+    return ICP_PAIN_SIGNALS
+
+
 def generate_impact(article):
     """Generate 'What it Means' content based on article topic and ICP pain points."""
     topic = article.get('topic', 'General AI News')
     templates = IMPACT_TEMPLATES.get(topic, IMPACT_TEMPLATES['General AI News'])
     general = templates['general']
 
+    # Get ICP pain signals (from database or hardcoded)
+    pain_signals = get_icp_pain_signals()
+
     # Try to match article content to specific ICP pain points
     text = (article['title'] + ' ' + article.get('summary', '')).lower()
     matched_impacts = []
-    for signal in ICP_PAIN_SIGNALS:
+    for signal in pain_signals:
         if any(kw in text for kw in signal['keywords']):
             matched_impacts.append(signal['smb_impact'])
 

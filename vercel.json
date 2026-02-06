@@ -1,6 +1,11 @@
 {
   "rewrites": [
+    { "source": "/api/admin/feeds/:path*", "destination": "/api/admin/feeds" },
+    { "source": "/api/admin/icps/:path*", "destination": "/api/admin/icps" },
+    { "source": "/api/admin/categories/:path*", "destination": "/api/admin/categories" },
+    { "source": "/api/admin/discover/:path*", "destination": "/api/admin/discover" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/admin", "destination": "/public/admin.html" },
     { "source": "/(.*)", "destination": "/public/index.html" }
   ]
 }
