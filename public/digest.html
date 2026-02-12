@@ -291,6 +291,61 @@
             color: #555; transition: all 0.15s; font-family: inherit;
         }
         .btn-export:hover { border-color: #667eea; color: #667eea; }
+        /* --- Article Action Buttons --- */
+        .article-actions {
+            display: flex; gap: 8px; margin-top: 12px; padding-top: 12px;
+            border-top: 1px solid #e9ecef;
+        }
+        .btn-article-action {
+            padding: 6px 14px; border: 1.5px solid #e0e0e0; border-radius: 6px;
+            background: white; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+            color: #555; transition: all 0.15s; font-family: inherit;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .btn-article-action:hover { border-color: #667eea; color: #667eea; background: #f8f9ff; }
+        .btn-article-action:disabled { opacity: 0.5; cursor: not-allowed; }
+        /* --- Modal --- */
+        .modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+            width: 100%; height: 100%; overflow: auto;
+            background: rgba(0,0,0,0.5); animation: fadeIn 0.2s;
+        }
+        .modal.show { display: flex; align-items: center; justify-content: center; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-content {
+            background: white; margin: auto; padding: 0; border-radius: 12px;
+            width: 90%; max-width: 700px; max-height: 80vh;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15); animation: slideDown 0.3s;
+        }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header {
+            padding: 20px 24px; border-bottom: 1px solid #e9ecef;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-header h3 { font-size: 1.1rem; color: #333; margin: 0; }
+        .modal-close {
+            background: none; border: none; font-size: 1.5rem; color: #999;
+            cursor: pointer; padding: 0; width: 30px; height: 30px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 6px; transition: all 0.15s;
+        }
+        .modal-close:hover { background: #f0f2f5; color: #333; }
+        .modal-body {
+            padding: 24px; max-height: calc(80vh - 140px); overflow-y: auto;
+        }
+        .modal-body .loading {
+            text-align: center; padding: 40px; color: #999;
+        }
+        .modal-body .spinner {
+            border: 3px solid #f3f3f3; border-top: 3px solid #667eea;
+            border-radius: 50%; width: 40px; height: 40px;
+            animation: spin 1s linear infinite; margin: 0 auto 16px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .modal-body .summary-content { line-height: 1.7; color: #444; font-size: 0.9rem; }
+        .modal-body .summary-content h4 { font-size: 0.95rem; color: #667eea; margin: 16px 0 8px; }
+        .modal-body .summary-content ul { padding-left: 20px; margin: 8px 0; }
+        .modal-body .summary-content li { margin-bottom: 6px; }
         /* --- Footer --- */
         .footer { text-align: center; padding: 24px; color: #bbb; font-size: 0.8rem; }
     </style>
@@ -396,6 +451,22 @@
                         <div class="section-title">All Articles</div>
                         <div id="allArticles"></div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Modal -->
+    <div id="summaryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Article Summary</h3>
+                <button class="modal-close" onclick="closeSummaryModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Generating summary...</p>
                 </div>
             </div>
         </div>
@@ -620,6 +691,16 @@
 
             await Promise.all(promises);
 
+            // Remove duplicates based on article link
+            const seenLinks = new Set();
+            allArticles = allArticles.filter(article => {
+                if (seenLinks.has(article.link)) {
+                    return false;
+                }
+                seenLinks.add(article.link);
+                return true;
+            });
+
             allArticles.sort((a, b) => b.published.localeCompare(a.published));
 
             const byTopic = {};
@@ -664,8 +745,9 @@
         }
 
         function renderArticleCard(a) {
+            const articleId = btoa(a.link).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
             return `
-                <div class="article">
+                <div class="article" data-article-id="${articleId}">
                     <div class="article-header">
                         <h3><a href="${a.link}" target="_blank">${a.title}</a>${a.viral_score >= 4 ? '<span class="viral-badge">Trending</span>' : ''}</h3>
                         <span class="smb-score">${'\u2605'.repeat(a.smb_score || 0)}${'\u2606'.repeat(10 - (a.smb_score || 0))}</span>
@@ -693,6 +775,14 @@
                             <ul>${a.content_suggestions.map(s => `<li>${s}</li>`).join('')}</ul>
                         </div>
                     ` : ''}
+                    <div class="article-actions">
+                        <button class="btn-article-action" onclick="showSummary('${a.link}', 'tldr', '${a.title.replace(/'/g, "\\'")}')">
+                            📝 TL;DR
+                        </button>
+                        <button class="btn-article-action" onclick="showSummary('${a.link}', 'executive', '${a.title.replace(/'/g, "\\'")}')">
+                            📊 Executive Summary
+                        </button>
+                    </div>
                 </div>`;
         }
 
@@ -760,6 +850,192 @@
                 text += `${i + 1}. ${a.title}\n   ${a.source} | ${a.published_display}\n   ${a.link}\n\n`;
             });
             navigator.clipboard.writeText(text).then(() => alert('Digest copied to clipboard!'));
+        }
+
+        // --- Summary Modal Functions ---
+        function showSummary(articleLink, summaryType, articleTitle) {
+            const modal = document.getElementById('summaryModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+
+            // Set modal title
+            modalTitle.textContent = summaryType === 'tldr' ? 'TL;DR Summary' : 'Executive Summary';
+
+            // Show loading state
+            modalBody.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Generating ${summaryType === 'tldr' ? 'TL;DR' : 'executive summary'}...</p>
+                </div>
+            `;
+
+            // Show modal
+            modal.classList.add('show');
+
+            // Generate summary
+            generateSummary(articleLink, summaryType, articleTitle)
+                .then(summary => {
+                    modalBody.innerHTML = `<div class="summary-content">${summary}</div>`;
+                })
+                .catch(error => {
+                    modalBody.innerHTML = `
+                        <div class="summary-content">
+                            <p style="color: #ef4444;">Error generating summary: ${error.message}</p>
+                            <p style="margin-top: 12px;">Please try again or visit the article directly: <a href="${articleLink}" target="_blank">Read article</a></p>
+                        </div>
+                    `;
+                });
+        }
+
+        function closeSummaryModal() {
+            const modal = document.getElementById('summaryModal');
+            modal.classList.remove('show');
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('summaryModal');
+            if (event.target === modal) {
+                closeSummaryModal();
+            }
+        }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeSummaryModal();
+            }
+        });
+
+        async function generateSummary(articleLink, summaryType, articleTitle) {
+            /**
+             * Generate a summary using Claude API.
+             * Falls back to client-side generation if API fails.
+             */
+
+            try {
+                // Call Claude API for summary generation
+                const response = await fetch('/api/summarize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: articleLink,
+                        type: summaryType,
+                        title: articleTitle
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.summary) {
+                    return data.summary;
+                } else {
+                    throw new Error(data.error || 'Failed to generate summary');
+                }
+            } catch (error) {
+                console.error('Claude API error, falling back to client-side generation:', error);
+
+                // Fallback to client-side summary generation
+                if (!digestData) {
+                    throw new Error('No digest data available');
+                }
+
+                const article = digestData.all_articles.find(a => a.link === articleLink);
+                if (!article) {
+                    throw new Error('Article not found');
+                }
+
+                // Generate summary based on type
+                if (summaryType === 'tldr') {
+                    return generateTLDR(article);
+                } else {
+                    return generateExecutiveSummary(article);
+                }
+            }
+        }
+
+        function generateTLDR(article) {
+            /**
+             * Generate a TL;DR summary from the article data.
+             * This uses the existing article metadata to create a concise summary.
+             */
+            let html = '<h4>Quick Summary</h4>';
+
+            // Use key bullets if available, otherwise use summary
+            if (article.key_bullets && article.key_bullets.length > 0) {
+                html += '<ul>';
+                article.key_bullets.forEach(bullet => {
+                    html += `<li>${bullet}</li>`;
+                });
+                html += '</ul>';
+            } else if (article.summary) {
+                html += `<p>${article.summary}</p>`;
+            }
+
+            // Add source and link
+            html += `<p style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e9ecef; font-size: 0.85rem;">`;
+            html += `<strong>Source:</strong> ${article.source}<br>`;
+            html += `<strong>Published:</strong> ${article.published_display}<br>`;
+            html += `<strong>Topic:</strong> ${article.topic}<br>`;
+            html += `<a href="${article.link}" target="_blank" style="color: #667eea; text-decoration: none;">Read full article →</a>`;
+            html += `</p>`;
+
+            return html;
+        }
+
+        function generateExecutiveSummary(article) {
+            /**
+             * Generate an executive summary from the article data.
+             * This provides more detailed context including impact analysis.
+             */
+            let html = `<h4>${article.title}</h4>`;
+
+            // Overview section
+            html += '<p style="margin-top: 12px;"><strong>Overview:</strong></p>';
+            if (article.key_bullets && article.key_bullets.length > 0) {
+                html += '<ul>';
+                article.key_bullets.forEach(bullet => {
+                    html += `<li>${bullet}</li>`;
+                });
+                html += '</ul>';
+            } else if (article.summary) {
+                html += `<p>${article.summary}</p>`;
+            }
+
+            // Impact Analysis
+            if (article.impact) {
+                html += '<h4 style="margin-top: 20px;">Impact Analysis</h4>';
+                html += `<p><strong>General Impact:</strong> ${article.impact.general_impact}</p>`;
+                html += `<p style="margin-top: 8px;"><strong>SMB Impact:</strong> ${article.impact.smb_impact}</p>`;
+            }
+
+            // SMB Relevance Score
+            if (article.smb_score) {
+                html += '<p style="margin-top: 12px;">';
+                html += `<strong>SMB Relevance Score:</strong> ${article.smb_score}/10 `;
+                html += `${'★'.repeat(article.smb_score)}${'☆'.repeat(10 - article.smb_score)}`;
+                html += '</p>';
+            }
+
+            // Content Suggestions
+            if (article.content_suggestions && article.content_suggestions.length > 0) {
+                html += '<h4 style="margin-top: 20px;">Content Ideas</h4>';
+                html += '<ul>';
+                article.content_suggestions.forEach(suggestion => {
+                    html += `<li>${suggestion}</li>`;
+                });
+                html += '</ul>';
+            }
+
+            // Metadata
+            html += `<p style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e9ecef; font-size: 0.85rem;">`;
+            html += `<strong>Source:</strong> ${article.source} | `;
+            html += `<strong>Published:</strong> ${article.published_display} | `;
+            html += `<strong>Category:</strong> ${article.category}<br>`;
+            html += `<a href="${article.link}" target="_blank" style="color: #667eea; text-decoration: none; margin-top: 8px; display: inline-block;">Read full article →</a>`;
+            html += `</p>`;
+
+            return html;
         }
 
         document.addEventListener('DOMContentLoaded', loadFeeds);
