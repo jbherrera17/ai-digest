@@ -736,6 +736,7 @@
             document.getElementById('progressText').textContent = 'Complete!';
 
             setTimeout(() => {
+                buildArticleLookup();
                 displayResults(digestData);
                 progressContainer.style.display = 'none';
                 resultsCard.classList.add('show');
@@ -776,10 +777,10 @@
                         </div>
                     ` : ''}
                     <div class="article-actions">
-                        <button class="btn-article-action" onclick="showSummary('${a.link}', 'tldr', '${a.title.replace(/'/g, "\\'")}')">
+                        <button class="btn-article-action" onclick="showSummary('${articleId}', 'tldr')">
                             📝 TL;DR
                         </button>
-                        <button class="btn-article-action" onclick="showSummary('${a.link}', 'executive', '${a.title.replace(/'/g, "\\'")}')">
+                        <button class="btn-article-action" onclick="showSummary('${articleId}', 'executive')">
                             📊 Executive Summary
                         </button>
                     </div>
@@ -853,19 +854,40 @@
         }
 
         // --- Summary Modal Functions ---
-        function showSummary(articleLink, summaryType, articleTitle) {
+        // Build a lookup map from articleId to article object
+        let articleLookup = {};
+
+        function buildArticleLookup() {
+            if (!digestData) return;
+            articleLookup = {};
+            digestData.all_articles.forEach(a => {
+                const id = btoa(a.link).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+                articleLookup[id] = a;
+            });
+        }
+
+        function showSummary(articleId, summaryType) {
+            const article = articleLookup[articleId];
+            if (!article) return;
+
+            if (summaryType === 'executive') {
+                // Executive summary opens in a new tab
+                showExecutiveSummary(article);
+                return;
+            }
+
             const modal = document.getElementById('summaryModal');
             const modalTitle = document.getElementById('modalTitle');
             const modalBody = document.getElementById('modalBody');
 
             // Set modal title
-            modalTitle.textContent = summaryType === 'tldr' ? 'TL;DR Summary' : 'Executive Summary';
+            modalTitle.textContent = 'TL;DR Summary';
 
             // Show loading state
             modalBody.innerHTML = `
                 <div class="loading">
                     <div class="spinner"></div>
-                    <p>Generating ${summaryType === 'tldr' ? 'TL;DR' : 'executive summary'}...</p>
+                    <p>Generating TL;DR...</p>
                 </div>
             `;
 
@@ -873,7 +895,7 @@
             modal.classList.add('show');
 
             // Generate summary
-            generateSummary(articleLink, summaryType, articleTitle)
+            generateSummary(article, summaryType)
                 .then(summary => {
                     modalBody.innerHTML = `<div class="summary-content">${summary}</div>`;
                 })
@@ -881,7 +903,7 @@
                     modalBody.innerHTML = `
                         <div class="summary-content">
                             <p style="color: #ef4444;">Error generating summary: ${error.message}</p>
-                            <p style="margin-top: 12px;">Please try again or visit the article directly: <a href="${articleLink}" target="_blank">Read article</a></p>
+                            <p style="margin-top: 12px;">Please try again or visit the article directly: <a href="${article.link}" target="_blank">Read article</a></p>
                         </div>
                     `;
                 });
@@ -907,9 +929,64 @@
             }
         });
 
-        async function generateSummary(articleLink, summaryType, articleTitle) {
+        async function showExecutiveSummary(article) {
             /**
-             * Generate a summary using Claude API.
+             * Generate an executive summary and open it in a new browser tab.
+             */
+            // Show a brief loading indicator via the modal
+            const modal = document.getElementById('summaryModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            modalTitle.textContent = 'Executive Summary';
+            modalBody.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Generating executive summary... This will open in a new tab.</p>
+                </div>
+            `;
+            modal.classList.add('show');
+
+            try {
+                const response = await fetch('/api/summarize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: article.link,
+                        type: 'executive',
+                        title: article.title,
+                        source: article.source || '',
+                        date: article.published_display || ''
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.html) {
+                    // Open the full HTML page in a new tab
+                    const blob = new Blob([data.html], { type: 'text/html' });
+                    const blobUrl = URL.createObjectURL(blob);
+                    window.open(blobUrl, '_blank');
+                    closeSummaryModal();
+                } else {
+                    throw new Error(data.error || 'Failed to generate executive summary');
+                }
+            } catch (error) {
+                console.error('Executive summary error:', error);
+                modalBody.innerHTML = `
+                    <div class="summary-content">
+                        <p style="color: #ef4444;">Error generating executive summary: ${error.message}</p>
+                        <p style="margin-top: 8px; font-size: 0.85rem; color: #888;">Falling back to basic summary...</p>
+                    </div>
+                `;
+                // Fallback to client-side generation in modal
+                const fallback = generateExecutiveSummary(article);
+                modalBody.innerHTML = `<div class="summary-content">${fallback}</div>`;
+            }
+        }
+
+        async function generateSummary(article, summaryType) {
+            /**
+             * Generate a TL;DR summary using Claude API.
              * Falls back to client-side generation if API fails.
              */
 
@@ -919,9 +996,11 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        url: articleLink,
+                        url: article.link,
                         type: summaryType,
-                        title: articleTitle
+                        title: article.title,
+                        source: article.source || '',
+                        date: article.published_display || ''
                     })
                 });
 
@@ -934,34 +1013,30 @@
                 }
             } catch (error) {
                 console.error('Claude API error, falling back to client-side generation:', error);
-
-                // Fallback to client-side summary generation
-                if (!digestData) {
-                    throw new Error('No digest data available');
-                }
-
-                const article = digestData.all_articles.find(a => a.link === articleLink);
-                if (!article) {
-                    throw new Error('Article not found');
-                }
-
-                // Generate summary based on type
-                if (summaryType === 'tldr') {
-                    return generateTLDR(article);
-                } else {
-                    return generateExecutiveSummary(article);
-                }
+                return generateTLDR(article);
             }
         }
 
-        function generateTLDR(article) {
-            /**
-             * Generate a TL;DR summary from the article data.
-             * This uses the existing article metadata to create a concise summary.
-             */
-            let html = '<h4>Quick Summary</h4>';
+        function articleHeader(article) {
+            let html = `<h3 style="margin: 0 0 4px 0; font-size: 1.05rem; color: #333;">${article.title}</h3>`;
+            html += `<p style="font-size: 0.8rem; color: #888; margin: 0 0 16px 0;">`;
+            html += `<span style="font-weight: 600; color: #667eea;">${article.source}</span>`;
+            if (article.published_display) html += ` &middot; ${article.published_display}`;
+            html += `</p>`;
+            html += `<hr style="border: none; border-top: 1px solid #e9ecef; margin: 0 0 16px 0;">`;
+            return html;
+        }
 
-            // Use key bullets if available, otherwise use summary
+        function articleFooter(article) {
+            return `<p style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e9ecef; font-size: 0.85rem;">
+                <a href="${article.link}" target="_blank" style="color: #667eea; text-decoration: none;">Read full article →</a>
+            </p>`;
+        }
+
+        function generateTLDR(article) {
+            let html = articleHeader(article);
+            html += '<h4>Quick Summary</h4>';
+
             if (article.key_bullets && article.key_bullets.length > 0) {
                 html += '<ul>';
                 article.key_bullets.forEach(bullet => {
@@ -972,26 +1047,15 @@
                 html += `<p>${article.summary}</p>`;
             }
 
-            // Add source and link
-            html += `<p style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e9ecef; font-size: 0.85rem;">`;
-            html += `<strong>Source:</strong> ${article.source}<br>`;
-            html += `<strong>Published:</strong> ${article.published_display}<br>`;
-            html += `<strong>Topic:</strong> ${article.topic}<br>`;
-            html += `<a href="${article.link}" target="_blank" style="color: #667eea; text-decoration: none;">Read full article →</a>`;
-            html += `</p>`;
-
+            html += articleFooter(article);
             return html;
         }
 
         function generateExecutiveSummary(article) {
-            /**
-             * Generate an executive summary from the article data.
-             * This provides more detailed context including impact analysis.
-             */
-            let html = `<h4>${article.title}</h4>`;
+            let html = articleHeader(article);
 
             // Overview section
-            html += '<p style="margin-top: 12px;"><strong>Overview:</strong></p>';
+            html += '<h4>Overview</h4>';
             if (article.key_bullets && article.key_bullets.length > 0) {
                 html += '<ul>';
                 article.key_bullets.forEach(bullet => {
@@ -1027,14 +1091,7 @@
                 html += '</ul>';
             }
 
-            // Metadata
-            html += `<p style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e9ecef; font-size: 0.85rem;">`;
-            html += `<strong>Source:</strong> ${article.source} | `;
-            html += `<strong>Published:</strong> ${article.published_display} | `;
-            html += `<strong>Category:</strong> ${article.category}<br>`;
-            html += `<a href="${article.link}" target="_blank" style="color: #667eea; text-decoration: none; margin-top: 8px; display: inline-block;">Read full article →</a>`;
-            html += `</p>`;
-
+            html += articleFooter(article);
             return html;
         }
 
