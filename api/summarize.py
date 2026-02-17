@@ -232,14 +232,23 @@ IMPORTANT: Return ONLY valid JSON. Do NOT wrap in markdown code fences.
 
     message = client.messages.create(
         model="claude-sonnet-4-5-20250929",
-        max_tokens=4096,
+        max_tokens=2048,
         messages=[
             {"role": "user", "content": prompt}
         ]
     )
 
     raw = strip_code_fences(message.content[0].text)
-    summary_json = json.loads(raw)
+    try:
+        summary_json = json.loads(raw)
+    except json.JSONDecodeError:
+        # Try to extract JSON from the response if Claude added extra text
+        import re
+        match = re.search(r'\{[\s\S]*\}', raw)
+        if match:
+            summary_json = json.loads(match.group())
+        else:
+            raise Exception("Failed to parse structured summary from Claude response")
     return render_executive_html(summary_json, url, metadata)
 
 

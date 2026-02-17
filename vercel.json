@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/summarize.py": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
     { "source": "/api/admin/feeds/:path*", "destination": "/api/admin/feeds" },
     { "source": "/api/admin/icps/:path*", "destination": "/api/admin/icps" },
