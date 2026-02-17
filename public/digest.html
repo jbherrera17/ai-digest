@@ -183,15 +183,23 @@
         }
         .placeholder-msg h3 { font-size: 1.2rem; margin-bottom: 8px; color: #bbb; }
         .placeholder-msg p { font-size: 0.9rem; }
-        /* --- Stats --- */
+        /* --- Stats Panel --- */
+        .stats-panel {
+            background: white; border-radius: 12px; padding: 16px 20px 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 20px;
+        }
+        .stats-date {
+            font-size: 0.82rem; color: #667eea; font-weight: 600;
+            padding-bottom: 12px; margin-bottom: 14px;
+            border-bottom: 1px solid #eee;
+        }
         .stats {
             display: grid; grid-template-columns: repeat(4, 1fr);
-            gap: 12px; margin-bottom: 20px;
+            gap: 12px;
         }
         @media (max-width: 700px) { .stats { grid-template-columns: repeat(2, 1fr); } }
         .stat-box {
-            background: white; padding: 16px; border-radius: 10px; text-align: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-top: 3px solid #667eea;
+            background: #f8f9fc; padding: 14px; border-radius: 8px; text-align: center;
         }
         .stat-box .number { font-size: 1.8rem; font-weight: 700; color: #333; }
         .stat-box .label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.3px; }
@@ -321,6 +329,7 @@
         .modal-header {
             padding: 20px 24px; border-bottom: 1px solid #e9ecef;
             display: flex; justify-content: space-between; align-items: center;
+            cursor: move; user-select: none;
         }
         .modal-header h3 { font-size: 1.1rem; color: #333; margin: 0; }
         .modal-close {
@@ -419,7 +428,10 @@
             </div>
 
             <div class="results" id="resultsCard">
-                <div class="stats" id="stats"></div>
+                <div class="stats-panel">
+                    <div class="stats-date" id="statsDate"></div>
+                    <div class="stats" id="stats"></div>
+                </div>
 
                 <div class="card" style="margin-bottom: 16px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
@@ -746,7 +758,7 @@
         }
 
         function renderArticleCard(a) {
-            const articleId = btoa(a.link).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+            const articleId = hashId(a.link);
             return `
                 <div class="article" data-article-id="${articleId}">
                     <div class="article-header">
@@ -795,13 +807,11 @@
             const fromStr = from.toLocaleDateString('en-US', dateOpts);
             const toStr = now.toLocaleDateString('en-US', dateOpts);
             const dateLabel = days === 1
-                ? `${toStr} (past 24 hours)`
-                : `${fromStr} – ${toStr}`;
+                ? `📅 ${toStr} (past 24 hours)`
+                : `📅 ${fromStr} – ${toStr}`;
 
+            document.getElementById('statsDate').innerHTML = dateLabel;
             document.getElementById('stats').innerHTML = `
-                <p style="text-align:center; color:#666; font-size:0.85rem; margin-bottom:12px;">
-                    📅 ${dateLabel}
-                </p>
                 <div class="stat-box"><div class="number">${data.stats.total_articles}</div><div class="label">Articles</div></div>
                 <div class="stat-box"><div class="number">${data.stats.sources_checked}</div><div class="label">Sources</div></div>
                 <div class="stat-box"><div class="number">${data.top_stories.length}</div><div class="label">Top Stories</div></div>
@@ -867,6 +877,17 @@
         }
 
         // --- Summary Modal Functions ---
+        // Generate a unique short hash from a string
+        function hashId(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const ch = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + ch;
+                hash |= 0;
+            }
+            return 'a' + Math.abs(hash).toString(36);
+        }
+
         // Build a lookup map from articleId to article object
         let articleLookup = {};
 
@@ -874,8 +895,7 @@
             if (!digestData) return;
             articleLookup = {};
             digestData.all_articles.forEach(a => {
-                const id = btoa(a.link).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
-                articleLookup[id] = a;
+                articleLookup[hashId(a.link)] = a;
             });
         }
 
@@ -941,6 +961,47 @@
                 closeSummaryModal();
             }
         });
+
+        // --- Draggable Modal ---
+        (function() {
+            const header = document.querySelector('#summaryModal .modal-header');
+            const content = document.querySelector('#summaryModal .modal-content');
+            let isDragging = false, startX, startY, origX, origY;
+
+            header.addEventListener('mousedown', function(e) {
+                if (e.target.closest('.modal-close')) return;
+                isDragging = true;
+                const rect = content.getBoundingClientRect();
+                startX = e.clientX; startY = e.clientY;
+                origX = rect.left; origY = rect.top;
+                content.style.margin = '0';
+                content.style.position = 'fixed';
+                content.style.left = origX + 'px';
+                content.style.top = origY + 'px';
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                content.style.left = (origX + e.clientX - startX) + 'px';
+                content.style.top = (origY + e.clientY - startY) + 'px';
+            });
+
+            document.addEventListener('mouseup', function() {
+                isDragging = false;
+            });
+        })();
+
+        // Reset modal position when closing
+        const _origClose = closeSummaryModal;
+        closeSummaryModal = function() {
+            const content = document.querySelector('#summaryModal .modal-content');
+            content.style.position = '';
+            content.style.left = '';
+            content.style.top = '';
+            content.style.margin = 'auto';
+            _origClose();
+        };
 
         async function showExecutiveSummary(article) {
             /**
