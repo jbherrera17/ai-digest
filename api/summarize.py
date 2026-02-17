@@ -6,8 +6,7 @@ Request body: {
     "title": "Article Title"
 }
 
-Response (tldr): { "success": true, "summary": "<html>", "format": "inline", "error": null }
-Response (executive): { "success": true, "html": "<full page>", "format": "page", "error": null }
+Response: { "success": true, "summary": "<html>", "error": null }
 """
 
 import json
@@ -122,8 +121,8 @@ IMPORTANT: Return ONLY raw HTML. Do NOT wrap your response in markdown code fenc
     return strip_code_fences(message.content[0].text)
 
 
-def generate_executive_summary(article_text, title, url, metadata):
-    """Generate a structured executive summary as JSON using Claude, then render to HTML."""
+def generate_executive_summary(article_text, title, url):
+    """Generate a comprehensive executive summary using Claude, returned as HTML."""
     api_key = os.environ.get('ANTHROPIC_API_KEY')
     if not api_key:
         raise Exception("ANTHROPIC_API_KEY not configured")
@@ -162,8 +161,12 @@ def generate_executive_summary(article_text, title, url, metadata):
 - Keep all decimal places and significant figures as presented
 
 5. Structure Requirements
-- Format output as valid JSON
-- Use proper HTML-compatible markup
+- Format output as clean HTML
+- Use <h4> for section headings
+- Use <ul> and <li> for lists
+- Use <p> for paragraphs
+- Use <strong> for emphasis
+- Use <table>, <tr>, <th>, <td> for any tabular data
 - Include clear section identifiers
 - Maintain consistent indentation and formatting
 
@@ -193,41 +196,7 @@ Please summarize the full page content:
 {article_text}
 </full_text>
 
-
-## output
-Output a valid JSON. Use the example JSON below a guideline for structure. Some additional notes:
-- Add as many sections as you'd like. The example include different kinds of sections.
-- sections must always include "heading"
-- sections can optionally include (body, items, entities) You can add any of these to a section without breaking the structure.
-- for "body", you can use <br> <br> to create a line break for multiple paragraphs if needed.
-
-Example JSON:
-{{
-  "title": "Article Title Here",
-  "subtitle": "A concise subtitle summarizing the article",
-  "sections": [
-    {{
-      "heading": "Overview",
-      "body": "A paragraph of text describing the overview.<br><br>A second paragraph if needed."
-    }},
-    {{
-      "heading": "Key Points",
-      "items": [
-        {{"topic": "First Point", "details": "Details about the first point"}},
-        {{"topic": "Second Point", "details": "Details about the second point"}}
-      ]
-    }},
-    {{
-      "heading": "People & Organizations",
-      "entities": [
-        {{"type": "Person", "name": "John Doe", "relation": "CEO of Example Corp"}},
-        {{"type": "Organization", "name": "Example Corp", "relation": "Leading tech company"}}
-      ]
-    }}
-  ]
-}}
-
-IMPORTANT: Return ONLY valid JSON. Do NOT wrap in markdown code fences.
+IMPORTANT: Return ONLY raw HTML. Do NOT wrap your response in markdown code fences (```). Do not include the article title as a heading (it's already shown above your summary).
 """
 
     message = client.messages.create(
@@ -238,109 +207,7 @@ IMPORTANT: Return ONLY valid JSON. Do NOT wrap in markdown code fences.
         ]
     )
 
-    raw = strip_code_fences(message.content[0].text)
-    try:
-        summary_json = json.loads(raw)
-    except json.JSONDecodeError:
-        # Try to extract JSON from the response if Claude added extra text
-        import re
-        match = re.search(r'\{[\s\S]*\}', raw)
-        if match:
-            summary_json = json.loads(match.group())
-        else:
-            raise Exception("Failed to parse structured summary from Claude response")
-    return render_executive_html(summary_json, url, metadata)
-
-
-def render_executive_html(summary_json, url, metadata):
-    """Render the executive summary JSON into a full standalone HTML page."""
-    from html import escape
-
-    og_image = escape(metadata.get('openGraphImage', ''))
-    title = escape(summary_json.get('title', ''))
-    subtitle = escape(summary_json.get('subtitle', ''))
-
-    # Build sections HTML
-    sections_html = ''
-    for section in summary_json.get('sections', []):
-        heading = escape(section.get('heading', ''))
-        section_html = f'''
-          <section class="py-4">
-            <h2 class="text-3xl font-bold py-4">{heading}</h2>
-'''
-        if section.get('body'):
-            section_html += f'            <p class="text-lg py-2">{section["body"]}</p>\n'
-
-        if section.get('items'):
-            section_html += '            <ul class="space-y-6 pl-4 list-disc space-y-1 text-left text-md">\n'
-            for item in section['items']:
-                topic = escape(item.get('topic', ''))
-                details = escape(item.get('details', ''))
-                section_html += f'              <li class="text-lg">\n                <span class="font-semibold">{topic}: </span>{details}\n              </li>\n'
-            section_html += '            </ul>\n'
-
-        if section.get('entities'):
-            for entity in section['entities']:
-                etype = escape(entity.get('type', ''))
-                ename = escape(entity.get('name', ''))
-                erelation = escape(entity.get('relation', ''))
-                section_html += f'''
-            <div class="py-4">
-              <p class="text-xs uppercase text-blue-700 font-medium">{etype}</p>
-              <h3 class="text-2xl font-semibold">{ename}</h3>
-              <p class="text-lg">{erelation}</p>
-            </div>
-'''
-
-        section_html += '          </section>'
-        sections_html += section_html
-
-    # Build image tag (only if og:image exists)
-    image_html = ''
-    if og_image:
-        image_html = f'<img class="h-auto max-w-full rounded-xl" src="{og_image}" alt="image description">'
-
-    html = f'''<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta property="og:title" content="{title}">
-    <meta property="og:description" content="{subtitle}">
-    <meta property="og:image" content="{og_image}">
-    <title>{title}</title>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link
-      href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css"
-      rel="stylesheet"
-    />
-  </head>
-  <body>
-    <main class="pt-8 pb-16 lg:pt-16 lg:pb-24 bg-white dark:bg-gray-900 antialiased">
-      <div class="flex justify-between px-16 mx-auto max-w-screen-xl ">
-        <article class="mx-auto w-full max-w-2xl format format-sm sm:format-base lg:format-lg format-blue dark:format-invert">
-          <header class="mb-4 lg:mb-6">
-            {image_html}
-            <h1 class="mb-4 text-4xl font-extrabold leading-tight text-gray-900 lg:mb-6 lg:text-4xl dark:text-white">{title}</h1>
-            <p class="lead">{subtitle}</p>
-          </header>
-
-{sections_html}
-
-        </article>
-      </div>
-      <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700">
-      <footer class="text-sm text-center text-gray-500 dark:text-gray-400">
-        <span class="block">End of summary.</span>
-        <a href="{escape(url)}" target="_blank" class="hover:underline text-blue-500">View the original webpage.</a>
-      </footer>
-    </main>
-    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
-  </body>
-</html>'''
-
-    return html
+    return strip_code_fences(message.content[0].text)
 
 
 class handler(BaseHTTPRequestHandler):
@@ -368,10 +235,9 @@ class handler(BaseHTTPRequestHandler):
             return
 
         try:
-            # Fetch article content and metadata
+            # Fetch article content
             result = fetch_article_content(url)
             article_text = result['text']
-            metadata = result['metadata']
 
             if not article_text:
                 raise Exception("No content could be extracted from the article")
@@ -379,43 +245,34 @@ class handler(BaseHTTPRequestHandler):
             # Generate summary based on type
             if summary_type == 'tldr':
                 summary = generate_tldr_summary(article_text, title, url)
-
-                # Build article metadata header for TL;DR (inline HTML)
-                from html import escape
-                header = f'<h3 style="margin: 0 0 4px 0; font-size: 1.05rem; color: #333;">{escape(title)}</h3>'
-                meta_parts = []
-                if source:
-                    meta_parts.append(f'<span style="font-weight: 600; color: #667eea;">{escape(source)}</span>')
-                if date:
-                    meta_parts.append(f'<span>{escape(date)}</span>')
-                if meta_parts:
-                    header += f'<p style="font-size: 0.8rem; color: #888; margin: 0 0 16px 0;">{" &middot; ".join(meta_parts)}</p>'
-                header += '<hr style="border: none; border-top: 1px solid #e9ecef; margin: 0 0 16px 0;">'
-
-                footer = f'''
-                    <p style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e9ecef; font-size: 0.85rem;">
-                        <a href="{url}" target="_blank" style="color: #667eea; text-decoration: none;">Read full article →</a>
-                    </p>
-                '''
-
-                summary = header + summary + footer
-
-                self.wfile.write(json.dumps({
-                    'success': True,
-                    'summary': summary,
-                    'format': 'inline',
-                    'error': None
-                }).encode())
             else:
-                # Executive summary returns a full standalone HTML page
-                html_page = generate_executive_summary(article_text, title, url, metadata)
+                summary = generate_executive_summary(article_text, title, url)
 
-                self.wfile.write(json.dumps({
-                    'success': True,
-                    'html': html_page,
-                    'format': 'page',
-                    'error': None
-                }).encode())
+            # Build article metadata header
+            from html import escape
+            header = f'<h3 style="margin: 0 0 4px 0; font-size: 1.05rem; color: #333;">{escape(title)}</h3>'
+            meta_parts = []
+            if source:
+                meta_parts.append(f'<span style="font-weight: 600; color: #667eea;">{escape(source)}</span>')
+            if date:
+                meta_parts.append(f'<span>{escape(date)}</span>')
+            if meta_parts:
+                header += f'<p style="font-size: 0.8rem; color: #888; margin: 0 0 16px 0;">{" &middot; ".join(meta_parts)}</p>'
+            header += '<hr style="border: none; border-top: 1px solid #e9ecef; margin: 0 0 16px 0;">'
+
+            footer = f'''
+                <p style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e9ecef; font-size: 0.85rem;">
+                    <a href="{url}" target="_blank" style="color: #667eea; text-decoration: none;">Read full article →</a>
+                </p>
+            '''
+
+            summary = header + summary + footer
+
+            self.wfile.write(json.dumps({
+                'success': True,
+                'summary': summary,
+                'error': None
+            }).encode())
 
         except Exception as e:
             self.wfile.write(json.dumps({

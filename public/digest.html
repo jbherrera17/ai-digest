@@ -903,24 +903,19 @@
             const article = articleLookup[articleId];
             if (!article) return;
 
-            if (summaryType === 'executive') {
-                // Executive summary opens in a new tab
-                showExecutiveSummary(article);
-                return;
-            }
-
             const modal = document.getElementById('summaryModal');
             const modalTitle = document.getElementById('modalTitle');
             const modalBody = document.getElementById('modalBody');
 
             // Set modal title
-            modalTitle.textContent = 'TL;DR Summary';
+            modalTitle.textContent = summaryType === 'tldr' ? 'TL;DR Summary' : 'Executive Summary';
 
             // Show loading state
+            const label = summaryType === 'tldr' ? 'TL;DR' : 'executive summary';
             modalBody.innerHTML = `
                 <div class="loading">
                     <div class="spinner"></div>
-                    <p>Generating TL;DR...</p>
+                    <p>Generating ${label}...</p>
                 </div>
             `;
 
@@ -1003,64 +998,9 @@
             _origClose();
         };
 
-        async function showExecutiveSummary(article) {
-            /**
-             * Generate an executive summary and open it in a new browser tab.
-             */
-            // Show a brief loading indicator via the modal
-            const modal = document.getElementById('summaryModal');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalBody = document.getElementById('modalBody');
-            modalTitle.textContent = 'Executive Summary';
-            modalBody.innerHTML = `
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Generating executive summary... This will open in a new tab.</p>
-                </div>
-            `;
-            modal.classList.add('show');
-
-            try {
-                const response = await fetch('/api/summarize', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        url: article.link,
-                        type: 'executive',
-                        title: article.title,
-                        source: article.source || '',
-                        date: article.published_display || ''
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success && data.html) {
-                    // Open the full HTML page in a new tab
-                    const blob = new Blob([data.html], { type: 'text/html' });
-                    const blobUrl = URL.createObjectURL(blob);
-                    window.open(blobUrl, '_blank');
-                    closeSummaryModal();
-                } else {
-                    throw new Error(data.error || 'Failed to generate executive summary');
-                }
-            } catch (error) {
-                console.error('Executive summary error:', error);
-                modalBody.innerHTML = `
-                    <div class="summary-content">
-                        <p style="color: #ef4444;">Error generating executive summary: ${error.message}</p>
-                        <p style="margin-top: 8px; font-size: 0.85rem; color: #888;">Falling back to basic summary...</p>
-                    </div>
-                `;
-                // Fallback to client-side generation in modal
-                const fallback = generateExecutiveSummary(article);
-                modalBody.innerHTML = `<div class="summary-content">${fallback}</div>`;
-            }
-        }
-
         async function generateSummary(article, summaryType) {
             /**
-             * Generate a TL;DR summary using Claude API.
+             * Generate a summary using Claude API.
              * Falls back to client-side generation if API fails.
              */
 
@@ -1087,7 +1027,11 @@
                 }
             } catch (error) {
                 console.error('Claude API error, falling back to client-side generation:', error);
-                return generateTLDR(article);
+                if (summaryType === 'tldr') {
+                    return generateTLDR(article);
+                } else {
+                    return generateExecutiveSummary(article);
+                }
             }
         }
 
