@@ -122,7 +122,7 @@ IMPORTANT: Return ONLY raw HTML. Do NOT wrap your response in markdown code fenc
 
 
 def generate_executive_summary(article_text, title, url):
-    """Generate a comprehensive executive summary using Claude, returned as HTML."""
+    """Generate a structured executive summary as JSON, then render to inline HTML."""
     api_key = os.environ.get('ANTHROPIC_API_KEY')
     if not api_key:
         raise Exception("ANTHROPIC_API_KEY not configured")
@@ -161,14 +161,9 @@ def generate_executive_summary(article_text, title, url):
 - Keep all decimal places and significant figures as presented
 
 5. Structure Requirements
-- Format output as clean HTML
-- Use <h4> for section headings
-- Use <ul> and <li> for lists
-- Use <p> for paragraphs
-- Use <strong> for emphasis
-- Use <table>, <tr>, <th>, <td> for any tabular data
+- Format output as valid JSON
 - Include clear section identifiers
-- Maintain consistent indentation and formatting
+- Maintain consistent formatting
 
 6. Action & Decision Capture
 - Document all:
@@ -196,7 +191,47 @@ Please summarize the full page content:
 {article_text}
 </full_text>
 
-IMPORTANT: Return ONLY raw HTML. Do NOT wrap your response in markdown code fences (```). Do not include the article title as a heading (it's already shown above your summary).
+## output
+Output a valid JSON. Use the example JSON below as a guideline for structure. Some additional notes:
+- Add as many sections as needed. The example includes different kinds of sections.
+- sections must always include "heading"
+- sections can optionally include (body, items, entities). You can combine any of these in a section.
+- for "body", you can use <br><br> to create line breaks for multiple paragraphs if needed.
+- Always include an "SMB Impact" section describing how the subject affects small and medium businesses.
+
+Example JSON:
+{{
+  "title": "Article Title Here",
+  "subtitle": "A concise description of the content, can be a couple sentences long",
+  "sections": [
+    {{
+      "heading": "Introduction",
+      "body": "First paragraph of text.<br><br>Second paragraph if needed."
+    }},
+    {{
+      "heading": "Key Topics",
+      "body": "Optional intro text for this section.",
+      "items": [
+        {{"topic": "Topic Name", "details": "Description of this topic."}},
+        {{"topic": "Another Topic", "details": "Description of this topic."}}
+      ]
+    }},
+    {{
+      "heading": "SMB Impact",
+      "body": "How this subject affects small and medium businesses."
+    }},
+    {{
+      "heading": "Entities Involved",
+      "body": "Optional intro text.",
+      "entities": [
+        {{"name": "Company Name", "type": "Company", "relation": "What role they play."}},
+        {{"name": "Person Name", "type": "Person", "relation": "Their role and relevance."}}
+      ]
+    }}
+  ]
+}}
+
+IMPORTANT: Return ONLY valid JSON. Do NOT wrap in markdown code fences.
 """
 
     message = client.messages.create(
@@ -207,7 +242,56 @@ IMPORTANT: Return ONLY raw HTML. Do NOT wrap your response in markdown code fenc
         ]
     )
 
-    return strip_code_fences(message.content[0].text)
+    raw = strip_code_fences(message.content[0].text)
+    try:
+        summary_json = json.loads(raw)
+    except json.JSONDecodeError:
+        import re
+        match = re.search(r'\{[\s\S]*\}', raw)
+        if match:
+            summary_json = json.loads(match.group())
+        else:
+            raise Exception("Failed to parse structured summary from Claude response")
+    return render_executive_html(summary_json)
+
+
+def render_executive_html(data):
+    """Render executive summary JSON into inline HTML for the modal."""
+    from html import escape
+
+    html = ''
+
+    # Subtitle
+    if data.get('subtitle'):
+        html += f'<p style="color: #555; font-style: italic; margin-bottom: 16px;">{data["subtitle"]}</p>'
+
+    for section in data.get('sections', []):
+        heading = escape(section.get('heading', ''))
+        html += f'<h4 style="color: #667eea; margin: 20px 0 8px;">{heading}</h4>'
+
+        if section.get('body'):
+            html += f'<p style="margin-bottom: 12px;">{section["body"]}</p>'
+
+        if section.get('items'):
+            html += '<ul style="padding-left: 20px; margin: 8px 0 12px;">'
+            for item in section['items']:
+                topic = escape(item.get('topic', ''))
+                details = escape(item.get('details', ''))
+                html += f'<li style="margin-bottom: 6px;"><strong>{topic}:</strong> {details}</li>'
+            html += '</ul>'
+
+        if section.get('entities'):
+            for entity in section['entities']:
+                etype = escape(entity.get('type', ''))
+                ename = escape(entity.get('name', ''))
+                erelation = escape(entity.get('relation', ''))
+                html += f'''<div style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
+                    <span style="font-size: 0.7rem; text-transform: uppercase; color: #667eea; font-weight: 600;">{etype}</span>
+                    <div style="font-weight: 600;">{ename}</div>
+                    <div style="color: #555; font-size: 0.9rem;">{erelation}</div>
+                </div>'''
+
+    return html
 
 
 class handler(BaseHTTPRequestHandler):
