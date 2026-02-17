@@ -8,7 +8,7 @@ Called in parallel from the frontend, one per feed.
 
 import json
 from http.server import BaseHTTPRequestHandler
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import feedparser
 import requests
 from api.shared import RSS_FEEDS, parse_feed_entries, enrich_articles
@@ -34,7 +34,7 @@ class handler(BaseHTTPRequestHandler):
             return
 
         config = RSS_FEEDS[name]
-        cutoff = datetime.now() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
         try:
             headers = {

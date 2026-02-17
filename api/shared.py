@@ -1,7 +1,7 @@
 """Shared configuration and utilities for AI Digest serverless functions."""
 
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from dateutil import parser as date_parser
 
 RSS_FEEDS = {
@@ -336,25 +336,32 @@ def parse_feed_entries(feed, name, config):
     articles = []
     for entry in feed.entries:
         pub_date = None
+        # Path A: feedparser's _parsed fields are always UTC
         for date_field in ['published_parsed', 'updated_parsed', 'created_parsed']:
             if hasattr(entry, date_field) and getattr(entry, date_field):
                 try:
-                    pub_date = datetime(*getattr(entry, date_field)[:6])
+                    pub_date = datetime(*getattr(entry, date_field)[:6], tzinfo=timezone.utc)
                     break
                 except Exception:
                     pass
 
+        # Path B: parse date strings (dateutil may return aware or naive)
         if not pub_date:
             for date_str_field in ['published', 'updated', 'created']:
                 if hasattr(entry, date_str_field) and getattr(entry, date_str_field):
                     try:
-                        pub_date = date_parser.parse(getattr(entry, date_str_field))
+                        parsed = date_parser.parse(getattr(entry, date_str_field))
+                        # Normalize to UTC-aware
+                        if parsed.tzinfo is None:
+                            pub_date = parsed.replace(tzinfo=timezone.utc)
+                        else:
+                            pub_date = parsed.astimezone(timezone.utc)
                         break
                     except Exception:
                         pass
 
         if not pub_date:
-            pub_date = datetime.now()
+            pub_date = datetime.now(timezone.utc)
 
         summary = ''
         if hasattr(entry, 'summary'):

@@ -788,7 +788,20 @@
         }
 
         function displayResults(data) {
+            const days = parseInt(document.getElementById('days').value);
+            const now = new Date();
+            const from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+            const dateOpts = { month: 'short', day: 'numeric', year: 'numeric' };
+            const fromStr = from.toLocaleDateString('en-US', dateOpts);
+            const toStr = now.toLocaleDateString('en-US', dateOpts);
+            const dateLabel = days === 1
+                ? `${toStr} (past 24 hours)`
+                : `${fromStr} – ${toStr}`;
+
             document.getElementById('stats').innerHTML = `
+                <p style="text-align:center; color:#666; font-size:0.85rem; margin-bottom:12px;">
+                    📅 ${dateLabel}
+                </p>
                 <div class="stat-box"><div class="number">${data.stats.total_articles}</div><div class="label">Articles</div></div>
                 <div class="stat-box"><div class="number">${data.stats.sources_checked}</div><div class="label">Sources</div></div>
                 <div class="stat-box"><div class="number">${data.top_stories.length}</div><div class="label">Top Stories</div></div>
