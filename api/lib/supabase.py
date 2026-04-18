@@ -243,3 +243,202 @@ def get_all_settings():
     client = get_public_client()
     response = client.table('admin_settings').select('*').execute()
     return {item['key']: item['value'] for item in response.data}
+
+
+# ============================================
+# Skills Registry Operations
+# ============================================
+
+def get_all_skills(filters=None):
+    """Get all skills from registry, optionally filtered."""
+    client = get_public_client()
+    query = client.table('skill_registry').select('*').order('department').order('name')
+
+    if filters:
+        if filters.get('department'):
+            query = query.eq('department', filters['department'])
+        if filters.get('type') == 'core':
+            query = query.eq('is_core_skill', True)
+        elif filters.get('type') == 'expert':
+            query = query.eq('is_expert_skill', True)
+        if filters.get('source'):
+            query = query.eq('source_id', filters['source'])
+        if filters.get('search'):
+            term = filters['search']
+            query = query.or_(f"name.ilike.%{term}%,description.ilike.%{term}%,slug.ilike.%{term}%")
+
+    response = query.execute()
+    return response.data
+
+
+def get_skill_sources():
+    """Get all skill sources."""
+    client = get_public_client()
+    response = client.table('skill_sources').select('*').order('name').execute()
+    return response.data
+
+
+def get_skill_matches(status=None):
+    """Get skill matches, optionally filtered by review status."""
+    client = get_public_client()
+    query = client.table('skill_matches').select('*, expert:expert_skill_id(*)').order('confidence', desc=True)
+
+    if status:
+        query = query.eq('review_status', status)
+
+    response = query.execute()
+    return response.data
+
+
+def get_unmatched_expert_skills():
+    """Get expert skills that have no approved match (new skill suggestions)."""
+    client = get_public_client()
+    all_expert = client.table('skill_registry').select('*').eq('is_expert_skill', True).order('name').execute()
+    adopted = client.table('skill_adoptions').select('expert_skill_id').execute()
+    adopted_ids = {a['expert_skill_id'] for a in adopted.data}
+    matched = client.table('skill_matches').select('expert_skill_id').eq('review_status', 'approved').execute()
+    matched_ids = {m['expert_skill_id'] for m in matched.data}
+
+    excluded = adopted_ids | matched_ids
+    return [s for s in all_expert.data if s['id'] not in excluded]
+
+
+def get_skill_stats():
+    """Get dashboard stats for skills registry."""
+    client = get_public_client()
+
+    skills = client.table('skill_registry').select('is_core_skill,is_expert_skill', count='exact').execute()
+    core = sum(1 for s in skills.data if s['is_core_skill'])
+    expert = sum(1 for s in skills.data if s['is_expert_skill'])
+
+    matches = client.table('skill_matches').select('review_status', count='exact').execute()
+    pending = sum(1 for m in matches.data if m['review_status'] == 'pending')
+    approved = sum(1 for m in matches.data if m['review_status'] == 'approved')
+    rejected = sum(1 for m in matches.data if m['review_status'] == 'rejected')
+
+    adoptions = client.table('skill_adoptions').select('id', count='exact').execute()
+
+    return {
+        'total_skills': skills.count or len(skills.data),
+        'core_skills': core,
+        'expert_skills': expert,
+        'total_matches': matches.count or len(matches.data),
+        'pending_reviews': pending,
+        'approved': approved,
+        'rejected': rejected,
+        'adoptions': len(adoptions.data),
+    }
+
+
+def upsert_skill_sources(sources):
+    """Upsert skill sources from registry sync."""
+    client = get_admin_client()
+    rows = []
+    for s in sources:
+        rows.append({
+            'source_key': s['id'],
+            'name': s['name'],
+            'type': s['type'],
+            'author_name': s.get('author', {}).get('name'),
+            'author_email': s.get('author', {}).get('email'),
+            'author_url': s.get('author', {}).get('url'),
+            'license': s.get('license'),
+            'repo_url': s.get('repoUrl'),
+            'department': s.get('department'),
+            'last_scanned_at': s.get('lastScannedAt'),
+        })
+    response = client.table('skill_sources').upsert(rows, on_conflict='source_key').execute()
+    return len(response.data)
+
+
+def upsert_skills(skills, source_map):
+    """Upsert skills from registry sync. source_map: {source_key: source_uuid}."""
+    client = get_admin_client()
+    rows = []
+    for s in skills:
+        rows.append({
+            'skill_id': s['id'],
+            'slug': s['slug'],
+            'name': s['name'],
+            'description': s.get('description', ''),
+            'department': s.get('department'),
+            'category': s.get('category'),
+            'source_id': source_map.get(s['sourceId']),
+            'author_name': s.get('author', {}).get('name'),
+            'license': s.get('license'),
+            'original_path': s.get('originalPath'),
+            'current_version': s.get('currentVersion', '1.0.0'),
+            'versions': s.get('versions', []),
+            'content_hash': s.get('versions', [{}])[-1].get('contentHash') if s.get('versions') else None,
+            'is_expert_skill': s.get('isExpertSkill', False),
+            'is_core_skill': s.get('isCoreSkill', False),
+            'has_command': s.get('hasCommand', False),
+            'keywords': s.get('keywords', []),
+            'discovered_at': s.get('discoveredAt'),
+            'last_checked_at': s.get('lastCheckedAt'),
+        })
+    synced = 0
+    for i in range(0, len(rows), 50):
+        batch = rows[i:i+50]
+        response = client.table('skill_registry').upsert(batch, on_conflict='skill_id').execute()
+        synced += len(response.data)
+    return synced
+
+
+def upsert_skill_matches(match_results, skill_id_map):
+    """Upsert match results. skill_id_map: {skill_id_text: uuid}. Preserves reviewed matches."""
+    client = get_admin_client()
+
+    existing = client.table('skill_matches').select('expert_skill_id,core_skill_slug,review_status').neq('review_status', 'pending').execute()
+    reviewed_pairs = {(r['expert_skill_id'], r['core_skill_slug']) for r in existing.data}
+
+    rows = []
+    for m in match_results:
+        expert_uuid = skill_id_map.get(m['expertSkillId'])
+        if not expert_uuid:
+            continue
+        core_slug = m.get('coreSkillSlug')
+        if not core_slug:
+            continue
+        if (expert_uuid, core_slug) in reviewed_pairs:
+            continue
+
+        rows.append({
+            'expert_skill_id': expert_uuid,
+            'core_skill_slug': core_slug,
+            'match_type': m.get('matchType'),
+            'confidence': m.get('confidence', 0),
+            'reasoning': m.get('reasoning', ''),
+            'review_status': 'pending',
+        })
+
+    if not rows:
+        return 0
+
+    response = client.table('skill_matches').upsert(
+        rows, on_conflict='expert_skill_id,core_skill_slug'
+    ).execute()
+    return len(response.data)
+
+
+def update_match_review(match_id, data):
+    """Update a match review status."""
+    client = get_admin_client()
+    update_data = {
+        'review_status': data['review_status'],
+        'reviewer_notes': data.get('reviewer_notes', ''),
+        'reviewed_by': data.get('reviewed_by', 'admin'),
+    }
+    response = client.table('skill_matches').update(update_data).eq('id', match_id).execute()
+    return response.data[0] if response.data else None
+
+
+def create_skill_adoption(data):
+    """Create a skill adoption record."""
+    client = get_admin_client()
+    response = client.table('skill_adoptions').insert({
+        'expert_skill_id': data['expert_skill_id'],
+        'adopted_version': data.get('adopted_version'),
+        'notes': data.get('notes', ''),
+    }).execute()
+    return response.data[0] if response.data else None

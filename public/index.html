@@ -4,541 +4,337 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Tools for Entrepreneurs | JBHerrera.com</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <meta name="description" content="Practical AI applications for solo entrepreneurs — research, create, and grow your business without the enterprise complexity."/>
+
+    <!-- Theme: set before paint to avoid light-flash for dark users -->
+    <script>
+      (function(){
+        var s = localStorage.getItem('theme');
+        var d = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', s || d);
+      })();
+    </script>
+
+    <link rel="stylesheet" href="/styles/base.css"/>
+
     <style>
-        :root {
-            --primary: #667eea;
-            --primary-dark: #5a67d8;
-            --secondary: #764ba2;
-            --dark: #1a1a2e;
-            --gray-50: #f9fafb;
-            --gray-100: #f3f4f6;
-            --gray-200: #e5e7eb;
-            --gray-300: #d1d5db;
-            --gray-500: #6b7280;
-            --gray-700: #374151;
-            --gray-900: #111827;
-        }
+        /* Page-specific layout for / */
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--gray-50);
-            color: var(--gray-900);
-            line-height: 1.6;
-        }
-
-        /* Navbar */
-        .navbar {
-            background: var(--dark);
-            padding: 0 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: 64px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .navbar-brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: white;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 1.25rem;
-        }
-
-        .navbar-brand svg {
-            width: 32px;
-            height: 32px;
-        }
-
-        .navbar-links {
-            display: flex;
-            gap: 8px;
-        }
-
-        .navbar-link {
-            padding: 10px 20px;
-            border-radius: 8px;
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .navbar-link:hover {
-            color: white;
-            background: rgba(255,255,255,0.1);
-        }
-
-        /* Hero Section */
-        .hero {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: white;
-            padding: 80px 24px;
-            text-align: center;
-        }
-
-        .hero-content {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .hero h1 {
-            font-size: 3rem;
-            font-weight: 800;
-            margin-bottom: 16px;
-            line-height: 1.2;
-        }
-
-        .hero p {
-            font-size: 1.25rem;
-            opacity: 0.9;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .hero-badge {
-            display: inline-block;
-            background: rgba(255,255,255,0.2);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 24px;
-        }
-
-        /* Main Content */
-        .main {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 60px 24px;
-        }
-
-        .section-header {
-            text-align: center;
-            margin-bottom: 48px;
-        }
-
-        .section-header h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 12px;
-        }
-
-        .section-header p {
-            color: var(--gray-500);
-            font-size: 1.1rem;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        /* App Cards Grid */
+        /* Apps grid */
         .apps-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 24px;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: var(--space-5);
         }
 
         .app-card {
-            background: white;
-            border-radius: 16px;
-            padding: 32px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-            transition: all 0.3s ease;
-            border: 1px solid var(--gray-200);
+            background: var(--color-surface);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+            padding: var(--space-6);
             display: flex;
             flex-direction: column;
             text-decoration: none;
             color: inherit;
+            transition: border-color var(--duration-base) var(--ease-out),
+                        box-shadow var(--duration-base) var(--ease-out),
+                        transform var(--duration-base) var(--ease-out);
         }
-
         .app-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
-            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--color-border);
+            color: inherit;
         }
-
-        .app-card.coming-soon {
-            opacity: 0.7;
-        }
-
+        .app-card.coming-soon { opacity: 0.6; }
         .app-card.coming-soon:hover {
             transform: none;
-            border-color: var(--gray-200);
+            box-shadow: none;
+            border-color: var(--color-border-subtle);
         }
 
         .app-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
+            width: 52px; height: 52px;
+            border-radius: var(--radius-md);
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: var(--space-4);
         }
+        .app-icon svg { width: 26px; height: 26px; color: white; }
 
-        .app-icon svg {
-            width: 28px;
-            height: 28px;
-            color: white;
-        }
-
-        .app-icon.digest { background: linear-gradient(135deg, #667eea, #764ba2); }
-        .app-icon.factcheck { background: linear-gradient(135deg, #10b981, #059669); }
-        .app-icon.thought { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .app-icon.proposal { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-        .app-icon.meeting { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
-        .app-icon.email { background: linear-gradient(135deg, #ec4899, #db2777); }
+        .app-icon.digest   { background: var(--gradient-brand); }
+        .app-icon.aistack  { background: linear-gradient(135deg, #34c759, #1f8a3d); }
+        .app-icon.thought  { background: linear-gradient(135deg, #ff9500, #cc6f00); }
+        .app-icon.proposal { background: linear-gradient(135deg, #007aff, #0058b8); }
+        .app-icon.meeting  { background: linear-gradient(135deg, #af52de, #7c3aed); }
+        .app-icon.email    { background: linear-gradient(135deg, #ff2d55, #db2777); }
 
         .app-card h3 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            font-size: 18px; font-weight: 600;
+            line-height: 1.3; letter-spacing: -0.01em;
+            margin-bottom: var(--space-2);
+            color: var(--color-text);
         }
-
         .app-card p {
-            color: var(--gray-500);
-            font-size: 0.95rem;
+            color: var(--color-text-secondary);
+            font-size: 15px; line-height: 1.5;
             flex-grow: 1;
-            margin-bottom: 20px;
-        }
-
-        .app-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            padding: 6px 12px;
-            border-radius: 20px;
-            width: fit-content;
-        }
-
-        .app-status.live {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .app-status.coming {
-            background: var(--gray-100);
-            color: var(--gray-500);
-        }
-
-        .app-status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-
-        .app-status.live .app-status-dot {
-            background: #22c55e;
-        }
-
-        .app-status.coming .app-status-dot {
-            background: var(--gray-400);
+            margin-bottom: var(--space-4);
         }
 
         .app-features {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 20px;
+            display: flex; flex-wrap: wrap; gap: 6px;
+            margin-bottom: var(--space-4);
         }
-
         .app-feature {
-            background: var(--gray-100);
-            color: var(--gray-700);
+            background: var(--color-bg-secondary);
+            color: var(--color-text-secondary);
             padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 500;
+            border-radius: var(--radius-sm);
+            font-size: 12px; font-weight: 500;
         }
 
-        /* CTA Section */
+        .app-status {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 12px; font-weight: 600;
+            padding: 4px 10px;
+            border-radius: var(--radius-full);
+            width: fit-content;
+        }
+        .app-status-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+        .app-status.live {
+            background: rgba(52,199,89,0.14);
+            color: #1f8a3d;
+        }
+        .app-status.live .app-status-dot { background: var(--color-success); }
+        [data-theme="dark"] .app-status.live { color: #6ee49a; }
+
+        .app-status.coming {
+            background: var(--color-bg-secondary);
+            color: var(--color-text-tertiary);
+        }
+        .app-status.coming .app-status-dot { background: var(--color-text-tertiary); }
+
+        /* CTA */
         .cta-section {
-            background: var(--dark);
-            color: white;
-            padding: 80px 24px;
             text-align: center;
-            margin-top: 60px;
+            padding: var(--space-12) var(--space-5);
+            margin-top: var(--space-10);
+            border-top: 1px solid var(--color-border-subtle);
+        }
+        .cta-section h2 { margin-bottom: var(--space-3); }
+        .cta-section p {
+            color: var(--color-text-secondary);
+            font-size: 17px;
+            max-width: 560px;
+            margin: 0 auto var(--space-6);
         }
 
-        .cta-content {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .cta-content h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 16px;
-        }
-
-        .cta-content p {
-            opacity: 0.8;
-            margin-bottom: 32px;
-        }
-
-        .cta-button {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--primary);
-            color: white;
-            padding: 14px 28px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-
-        .cta-button:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-        }
-
-        /* Footer */
-        .footer {
-            background: var(--gray-100);
-            padding: 40px 24px;
-            text-align: center;
-        }
-
-        .footer p {
-            color: var(--gray-500);
-            font-size: 0.9rem;
-        }
-
-        .footer a {
-            color: var(--primary);
-            text-decoration: none;
-        }
-
-        .footer a:hover {
-            text-decoration: underline;
-        }
-
-        /* Responsive */
         @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 2rem;
-            }
-
-            .hero p {
-                font-size: 1rem;
-            }
-
-            .apps-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .navbar-links {
-                display: none;
-            }
+            .apps-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar">
-        <a href="/" class="navbar-brand">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 16v-4"></path>
-                <path d="M12 8h.01"></path>
-            </svg>
-            AI.JBHerrera
-        </a>
-        <div class="navbar-links">
-            <a href="/digest" class="navbar-link">AI Digest</a>
-            <a href="https://jbherrera.com" class="navbar-link" target="_blank">Main Site</a>
-        </div>
-    </nav>
 
-    <!-- Hero -->
-    <section class="hero">
-        <div class="hero-content">
-            <div class="hero-badge">AI-Powered Productivity Suite</div>
-            <h1>AI Tools Built for Solo Entrepreneurs</h1>
-            <p>Practical AI applications to help you research, create, and grow your business — without the enterprise complexity.</p>
-        </div>
-    </section>
+<!-- Nav -->
+<nav class="navbar">
+  <a href="/" class="navbar-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M12 16v-4"></path>
+      <path d="M12 8h.01"></path>
+    </svg>
+    AI.JBHerrera
+  </a>
+  <div class="navbar-links">
+    <a href="/digest"   class="navbar-link">AI Digest</a>
+    <a href="/ai-stack" class="navbar-link">AI Stack</a>
+    <a href="/skills"   class="navbar-link">Skills</a>
+    <a href="https://jbherrera.com" class="navbar-link" target="_blank" rel="noopener">Main Site</a>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
+  </div>
+</nav>
 
-    <!-- Main Content -->
-    <main class="main">
-        <div class="section-header">
-            <h2>Your AI Toolkit</h2>
-            <p>Each tool is designed for independent professionals who need results, not features.</p>
-        </div>
+<!-- Hero -->
+<header class="hero">
+    <div class="hero-tag">AI-Powered Productivity Suite</div>
+    <h1 class="text-display">AI Tools Built for Solo Entrepreneurs</h1>
+    <p>Practical AI applications to help you research, create, and grow your business — without the enterprise complexity.</p>
+</header>
 
-        <div class="apps-grid">
-            <!-- AI Digest - Live -->
-            <a href="/digest" class="app-card">
-                <div class="app-icon digest">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 11a9 9 0 0 1 9 9"></path>
-                        <path d="M4 4a16 16 0 0 1 16 16"></path>
-                        <circle cx="5" cy="19" r="1"></circle>
-                    </svg>
-                </div>
-                <h3>AI Digest</h3>
-                <p>Stay informed with AI news from 50+ sources, filtered through your business lens. Get ICP-aware insights and content ideas for trending topics.</p>
-                <div class="app-features">
-                    <span class="app-feature">50+ Sources</span>
-                    <span class="app-feature">ICP Analysis</span>
-                    <span class="app-feature">Content Ideas</span>
-                </div>
-                <span class="app-status live">
-                    <span class="app-status-dot"></span>
-                    Live
-                </span>
-            </a>
+<!-- Main Content -->
+<main class="container section">
+    <div class="section-header">
+        <h2 class="text-h2">Your AI Toolkit</h2>
+        <p class="text-muted">Each tool is designed for independent professionals who need results, not features.</p>
+    </div>
 
-            <!-- Fact Checker - Coming Soon -->
-            <div class="app-card coming-soon">
-                <div class="app-icon factcheck">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                        <path d="M9 12l2 2 4-4"></path>
-                    </svg>
-                </div>
-                <h3>Fact Checker</h3>
-                <p>Verify claims, quotes, and statistics before you share them. Cross-reference sources and get confidence scores on information accuracy.</p>
-                <div class="app-features">
-                    <span class="app-feature">Source Verification</span>
-                    <span class="app-feature">Confidence Scoring</span>
-                    <span class="app-feature">Citation Finder</span>
-                </div>
-                <span class="app-status coming">
-                    <span class="app-status-dot"></span>
-                    Coming Soon
-                </span>
-            </div>
-
-            <!-- Thought Leadership - Coming Soon -->
-            <div class="app-card coming-soon">
-                <div class="app-icon thought">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                        <path d="M2 17l10 5 10-5"></path>
-                        <path d="M2 12l10 5 10-5"></path>
-                    </svg>
-                </div>
-                <h3>Thought Leadership Creator</h3>
-                <p>Generate article outlines, LinkedIn posts, and newsletter content aligned with your voice and expertise. Build authority consistently.</p>
-                <div class="app-features">
-                    <span class="app-feature">Article Outlines</span>
-                    <span class="app-feature">LinkedIn Posts</span>
-                    <span class="app-feature">Voice Matching</span>
-                </div>
-                <span class="app-status coming">
-                    <span class="app-status-dot"></span>
-                    Coming Soon
-                </span>
-            </div>
-
-            <!-- Proposal Generator - Coming Soon -->
-            <div class="app-card coming-soon">
-                <div class="app-icon proposal">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                        <polyline points="10 9 9 9 8 9"></polyline>
-                    </svg>
-                </div>
-                <h3>Proposal Generator</h3>
-                <p>Create professional client proposals in minutes. Input project details, get polished documents with scope, timeline, and pricing.</p>
-                <div class="app-features">
-                    <span class="app-feature">Templates</span>
-                    <span class="app-feature">Scope Builder</span>
-                    <span class="app-feature">PDF Export</span>
-                </div>
-                <span class="app-status coming">
-                    <span class="app-status-dot"></span>
-                    Coming Soon
-                </span>
-            </div>
-
-            <!-- Meeting Assistant - Coming Soon -->
-            <div class="app-card coming-soon">
-                <div class="app-icon meeting">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                        <line x1="12" y1="19" x2="12" y2="23"></line>
-                        <line x1="8" y1="23" x2="16" y2="23"></line>
-                    </svg>
-                </div>
-                <h3>Meeting Assistant</h3>
-                <p>Upload call recordings and get structured notes, action items, and follow-up email drafts. Never lose track of commitments again.</p>
-                <div class="app-features">
-                    <span class="app-feature">Transcription</span>
-                    <span class="app-feature">Action Items</span>
-                    <span class="app-feature">Follow-up Drafts</span>
-                </div>
-                <span class="app-status coming">
-                    <span class="app-status-dot"></span>
-                    Coming Soon
-                </span>
-            </div>
-
-            <!-- Email Composer - Coming Soon -->
-            <div class="app-card coming-soon">
-                <div class="app-icon email">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                        <polyline points="22,6 12,13 2,6"></polyline>
-                    </svg>
-                </div>
-                <h3>Email Composer</h3>
-                <p>Draft professional responses for any situation. Handle client inquiries, negotiate gracefully, and maintain your tone across all communications.</p>
-                <div class="app-features">
-                    <span class="app-feature">Smart Replies</span>
-                    <span class="app-feature">Tone Control</span>
-                    <span class="app-feature">Templates</span>
-                </div>
-                <span class="app-status coming">
-                    <span class="app-status-dot"></span>
-                    Coming Soon
-                </span>
-            </div>
-        </div>
-    </main>
-
-    <!-- CTA Section -->
-    <section class="cta-section">
-        <div class="cta-content">
-            <h2>Start with AI Digest</h2>
-            <p>Get ahead of AI trends that matter to your business. Curated news with insights tailored to your industry.</p>
-            <a href="/digest" class="cta-button">
-                Open AI Digest
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
+    <div class="apps-grid">
+        <!-- AI Digest - Live -->
+        <a href="/digest" class="app-card">
+            <div class="app-icon digest">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 11a9 9 0 0 1 9 9"></path>
+                    <path d="M4 4a16 16 0 0 1 16 16"></path>
+                    <circle cx="5" cy="19" r="1"></circle>
                 </svg>
-            </a>
-        </div>
-    </section>
+            </div>
+            <h3>AI Digest</h3>
+            <p>Stay informed with AI news from 50+ sources, filtered through your business lens. Get ICP-aware insights and content ideas for trending topics.</p>
+            <div class="app-features">
+                <span class="app-feature">50+ Sources</span>
+                <span class="app-feature">ICP Analysis</span>
+                <span class="app-feature">Content Ideas</span>
+            </div>
+            <span class="app-status live">
+                <span class="app-status-dot"></span>
+                Live
+            </span>
+        </a>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <p>&copy; 2025 <a href="https://jbherrera.com" target="_blank">JBHerrera.com</a>. AI tools for the independent professional.</p>
-    </footer>
+        <!-- AI Tech Stack - Live -->
+        <a href="/ai-stack" class="app-card">
+            <div class="app-icon aistack">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="4" rx="1"></rect>
+                    <rect x="3" y="10" width="18" height="4" rx="1"></rect>
+                    <rect x="3" y="17" width="18" height="4" rx="1"></rect>
+                </svg>
+            </div>
+            <h3>AI Tech Stack</h3>
+            <p>An interactive visual guide to every layer of an AI system — from GPU clusters to the chat interface. Built for entrepreneurs who want to understand what's under the hood.</p>
+            <div class="app-features">
+                <span class="app-feature">8 Layers</span>
+                <span class="app-feature">Interactive</span>
+                <span class="app-feature">Education</span>
+            </div>
+            <span class="app-status live">
+                <span class="app-status-dot"></span>
+                Live
+            </span>
+        </a>
+
+        <!-- Thought Leadership - Coming Soon -->
+        <div class="app-card coming-soon">
+            <div class="app-icon thought">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                </svg>
+            </div>
+            <h3>Thought Leadership Creator</h3>
+            <p>Generate article outlines, LinkedIn posts, and newsletter content aligned with your voice and expertise. Build authority consistently.</p>
+            <div class="app-features">
+                <span class="app-feature">Article Outlines</span>
+                <span class="app-feature">LinkedIn Posts</span>
+                <span class="app-feature">Voice Matching</span>
+            </div>
+            <span class="app-status coming">
+                <span class="app-status-dot"></span>
+                Coming Soon
+            </span>
+        </div>
+
+        <!-- Proposal Generator - Coming Soon -->
+        <div class="app-card coming-soon">
+            <div class="app-icon proposal">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+            </div>
+            <h3>Proposal Generator</h3>
+            <p>Create professional client proposals in minutes. Input project details, get polished documents with scope, timeline, and pricing.</p>
+            <div class="app-features">
+                <span class="app-feature">Templates</span>
+                <span class="app-feature">Scope Builder</span>
+                <span class="app-feature">PDF Export</span>
+            </div>
+            <span class="app-status coming">
+                <span class="app-status-dot"></span>
+                Coming Soon
+            </span>
+        </div>
+
+        <!-- Meeting Assistant - Coming Soon -->
+        <div class="app-card coming-soon">
+            <div class="app-icon meeting">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+            </div>
+            <h3>Meeting Assistant</h3>
+            <p>Upload call recordings and get structured notes, action items, and follow-up email drafts. Never lose track of commitments again.</p>
+            <div class="app-features">
+                <span class="app-feature">Transcription</span>
+                <span class="app-feature">Action Items</span>
+                <span class="app-feature">Follow-up Drafts</span>
+            </div>
+            <span class="app-status coming">
+                <span class="app-status-dot"></span>
+                Coming Soon
+            </span>
+        </div>
+
+        <!-- Email Composer - Coming Soon -->
+        <div class="app-card coming-soon">
+            <div class="app-icon email">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+            </div>
+            <h3>Email Composer</h3>
+            <p>Draft professional responses for any situation. Handle client inquiries, negotiate gracefully, and maintain your tone across all communications.</p>
+            <div class="app-features">
+                <span class="app-feature">Smart Replies</span>
+                <span class="app-feature">Tone Control</span>
+                <span class="app-feature">Templates</span>
+            </div>
+            <span class="app-status coming">
+                <span class="app-status-dot"></span>
+                Coming Soon
+            </span>
+        </div>
+    </div>
+</main>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <h2 class="text-h2">Start with AI Digest</h2>
+    <p>Get ahead of AI trends that matter to your business. Curated news with insights tailored to your industry.</p>
+    <a href="/digest" class="btn btn-primary btn-lg">
+        Open AI Digest
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+    </a>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+    &copy; 2026 <a href="https://jbherrera.com" target="_blank" rel="noopener">JBHerrera.com</a> &nbsp;·&nbsp; AI tools for the independent professional
+</footer>
+
+<script>
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  });
+</script>
+
 </body>
 </html>

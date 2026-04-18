@@ -3,316 +3,354 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI News Digest Generator</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>AI News Digest Generator | AI.JBHerrera</title>
+
+    <script>
+      (function(){
+        var s = localStorage.getItem('theme');
+        var d = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', s || d);
+      })();
+    </script>
+
+    <link rel="stylesheet" href="/styles/base.css"/>
+
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #f0f2f5;
-            min-height: 100vh;
-        }
-        /* --- Navigation Bar --- */
-        .navbar {
-            background: #1a1a2e;
-            padding: 0 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: 56px;
-        }
-        .navbar-brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: white;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-        .navbar-brand svg {
-            width: 28px;
-            height: 28px;
-        }
-        .navbar-links {
-            display: flex;
-            gap: 8px;
-        }
-        .navbar-link {
-            padding: 8px 16px;
-            border-radius: 6px;
-            color: rgba(255,255,255,0.7);
-            text-decoration: none;
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-        .navbar-link:hover {
-            color: white;
-            background: rgba(255,255,255,0.1);
-        }
-        .navbar-link.active {
-            color: white;
-            background: #667eea;
-        }
-        /* --- Top Bar --- */
+        /* Page-specific layout for /digest */
+
+        /* Topbar (gradient hero replacement) */
         .topbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white; padding: 24px 0; text-align: center;
+            background: var(--gradient-brand);
+            color: white; padding: 28px 0; text-align: center;
         }
-        .topbar h1 { font-size: 1.8rem; font-weight: 700; }
-        .topbar p { font-size: 0.95rem; opacity: 0.85; margin-top: 4px; }
-        /* --- Layout --- */
+        .topbar h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; }
+        .topbar p  { font-size: 14px; opacity: 0.9; margin-top: 4px; }
+
+        /* Layout */
         .layout {
-            max-width: 1400px; margin: 0 auto; padding: 24px;
-            display: grid; grid-template-columns: 320px 1fr; gap: 24px;
+            max-width: 1400px; margin: 0 auto; padding: var(--space-5);
+            display: grid; grid-template-columns: 320px 1fr; gap: var(--space-5);
         }
         @media (max-width: 900px) {
             .layout { grid-template-columns: 1fr; }
         }
-        /* --- Sidebar --- */
-        .sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+        /* Sidebar */
+        .sidebar { display: flex; flex-direction: column; gap: var(--space-4); }
         .card {
-            background: white; border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08); padding: 20px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 20px;
         }
         .card h2 {
-            font-size: 0.85rem; font-weight: 600; color: #667eea;
-            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;
+            font-size: 12px; font-weight: 600;
+            color: var(--color-primary);
+            text-transform: uppercase; letter-spacing: 0.06em;
+            margin-bottom: 12px;
         }
+
+        /* Form controls (page-scoped) */
         select, input[type="text"] {
-            width: 100%; padding: 10px 12px; border: 1.5px solid #e0e0e0;
-            border-radius: 8px; font-size: 0.9rem; font-family: inherit;
-            transition: border-color 0.2s; background: white;
+            width: 100%; padding: 10px 12px;
+            background: var(--color-surface); color: var(--color-text);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            font-size: 14px; font-family: inherit;
+            transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
         }
-        select:focus, input[type="text"]:focus { outline: none; border-color: #667eea; }
-        /* --- Source Picker --- */
+        select:focus, input[type="text"]:focus {
+            outline: none; border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px var(--color-primary-soft);
+        }
+
+        /* Source picker */
         .source-toolbar {
             display: flex; gap: 6px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;
         }
-        .source-toolbar .search-wrap {
-            flex: 1; min-width: 120px; position: relative;
-        }
+        .source-toolbar .search-wrap { flex: 1; min-width: 120px; position: relative; }
         .source-toolbar .search-wrap input {
-            padding-left: 32px; font-size: 0.85rem;
+            padding-left: 32px; font-size: 13px;
         }
         .source-toolbar .search-wrap::before {
             content: '\1F50D'; position: absolute; left: 10px; top: 50%;
-            transform: translateY(-50%); color: #aaa; font-size: 1rem;
+            transform: translateY(-50%); color: var(--color-text-tertiary); font-size: 14px;
         }
         .pill-btn {
-            padding: 6px 12px; border: 1.5px solid #e0e0e0; border-radius: 20px;
-            background: white; font-size: 0.75rem; font-weight: 600; cursor: pointer;
-            color: #555; transition: all 0.15s; white-space: nowrap;
+            padding: 6px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-full);
+            background: var(--color-surface);
+            font-size: 12px; font-weight: 600; cursor: pointer;
+            color: var(--color-text-secondary);
+            transition: border-color var(--duration-fast), color var(--duration-fast);
+            white-space: nowrap;
         }
-        .pill-btn:hover { border-color: #667eea; color: #667eea; }
+        .pill-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
         .source-count {
-            font-size: 0.8rem; color: #888; text-align: right; margin-bottom: 8px;
+            font-size: 12px; color: var(--color-text-tertiary);
+            text-align: right; margin-bottom: 8px;
         }
+
         .category-group { margin-bottom: 6px; }
         .category-toggle {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 8px 10px; background: #f8f9fa; border-radius: 8px;
+            padding: 8px 10px;
+            background: var(--color-bg-secondary);
+            border-radius: var(--radius-md);
             cursor: pointer; user-select: none; border: none; width: 100%;
-            font-family: inherit; text-align: left; transition: background 0.15s;
+            font-family: inherit; text-align: left;
+            transition: background var(--duration-fast);
         }
-        .category-toggle:hover { background: #eef0f4; }
+        .category-toggle:hover { background: var(--color-border-subtle); }
         .category-toggle .cat-label {
-            font-size: 0.8rem; font-weight: 600; color: #444;
+            font-size: 13px; font-weight: 600; color: var(--color-text);
             display: flex; align-items: center; gap: 6px;
         }
         .category-toggle .cat-count {
-            font-size: 0.7rem; background: #667eea; color: white;
-            padding: 1px 7px; border-radius: 10px; font-weight: 600;
+            font-size: 11px; background: var(--color-primary); color: white;
+            padding: 1px 7px; border-radius: var(--radius-full); font-weight: 600;
         }
         .category-toggle .cat-check {
-            font-size: 0.7rem; color: #667eea; font-weight: 600; cursor: pointer;
+            font-size: 11px; color: var(--color-primary); font-weight: 600; cursor: pointer;
         }
         .category-toggle .arrow {
-            font-size: 0.65rem; color: #999; transition: transform 0.2s;
+            font-size: 10px; color: var(--color-text-tertiary);
+            transition: transform var(--duration-fast);
         }
         .category-group.open .arrow { transform: rotate(90deg); }
-        .category-feeds {
-            display: none; padding: 4px 0 4px 8px;
-        }
+        .category-feeds { display: none; padding: 4px 0 4px 8px; }
         .category-group.open .category-feeds { display: block; }
+
         .feed-item {
             display: flex; align-items: center; gap: 8px;
-            padding: 5px 8px; border-radius: 6px; cursor: pointer;
-            transition: background 0.15s;
+            padding: 5px 8px; border-radius: var(--radius-sm); cursor: pointer;
+            transition: background var(--duration-fast);
         }
-        .feed-item:hover { background: #f0f2f5; }
-        .feed-item input { width: 15px; height: 15px; cursor: pointer; accent-color: #667eea; }
-        .feed-item span { font-size: 0.8rem; color: #444; }
+        .feed-item:hover { background: var(--color-bg-secondary); }
+        .feed-item input { width: 15px; height: 15px; cursor: pointer; accent-color: var(--color-primary); }
+        .feed-item span { font-size: 13px; color: var(--color-text); }
         .feed-item .feed-type {
-            font-size: 0.6rem; font-weight: 600; padding: 1px 5px;
-            border-radius: 4px; text-transform: uppercase;
+            font-size: 9px; font-weight: 600; padding: 1px 5px;
+            border-radius: var(--radius-sm); text-transform: uppercase;
         }
-        .feed-type-blog { background: #dbeafe; color: #1d4ed8; }
-        .feed-type-newsletter { background: #fef3c7; color: #92400e; }
-        .feed-type-news { background: #d1fae5; color: #065f46; }
-        /* --- Generate Button --- */
+        .feed-type-blog { background: rgba(0,122,255,0.14); color: #1d4ed8; }
+        [data-theme="dark"] .feed-type-blog { color: #93c5fd; }
+        .feed-type-newsletter { background: rgba(255,149,0,0.14); color: #92400e; }
+        [data-theme="dark"] .feed-type-newsletter { color: #ffb24d; }
+        .feed-type-news { background: rgba(52,199,89,0.14); color: #065f46; }
+        [data-theme="dark"] .feed-type-news { color: #6ee49a; }
+
+        /* Generate button */
         .btn-generate {
-            width: 100%; padding: 14px; border: none; border-radius: 10px;
-            font-size: 1rem; font-weight: 700; cursor: pointer;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white; transition: all 0.2s; font-family: inherit;
+            width: 100%; padding: 14px; border: none; border-radius: var(--radius-md);
+            font-size: 15px; font-weight: 600; cursor: pointer;
+            background: var(--gradient-brand);
+            color: white; transition: transform var(--duration-fast), box-shadow var(--duration-fast);
+            font-family: inherit;
         }
         .btn-generate:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+            box-shadow: 0 4px 14px rgba(102,126,234,0.4);
         }
         .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-        /* --- Progress --- */
+
+        /* Progress */
         .progress-container { display: none; margin-top: 12px; }
         .progress-bar {
-            height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden;
+            height: 6px; background: var(--color-border-subtle);
+            border-radius: var(--radius-full); overflow: hidden;
         }
         .progress-bar-fill {
             height: 100%; width: 0%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--gradient-brand);
             transition: width 0.3s;
         }
-        .progress-text { text-align: center; margin-top: 6px; color: #888; font-size: 0.8rem; }
-        /* --- Main Content --- */
+        .progress-text { text-align: center; margin-top: 6px; color: var(--color-text-tertiary); font-size: 12px; }
+
+        /* Main */
         .main { min-width: 0; }
         .results { display: none; }
         .results.show { display: block; }
         .placeholder-msg {
-            text-align: center; padding: 80px 20px; color: #aaa;
+            text-align: center; padding: 80px 20px; color: var(--color-text-tertiary);
         }
-        .placeholder-msg h3 { font-size: 1.2rem; margin-bottom: 8px; color: #bbb; }
-        .placeholder-msg p { font-size: 0.9rem; }
-        /* --- Stats Panel --- */
+        .placeholder-msg h3 { font-size: 18px; margin-bottom: 8px; color: var(--color-text-secondary); }
+        .placeholder-msg p  { font-size: 14px; }
+
+        /* Stats */
         .stats-panel {
-            background: white; border-radius: 12px; padding: 16px 20px 20px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 20px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 16px 20px 20px;
+            margin-bottom: 20px;
         }
         .stats-date {
-            font-size: 0.82rem; color: #667eea; font-weight: 600;
+            font-size: 13px; color: var(--color-primary); font-weight: 600;
             padding-bottom: 12px; margin-bottom: 14px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--color-border-subtle);
         }
         .stats {
-            display: grid; grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
         }
         @media (max-width: 700px) { .stats { grid-template-columns: repeat(2, 1fr); } }
         .stat-box {
-            background: #f8f9fc; padding: 14px; border-radius: 8px; text-align: center;
+            background: var(--color-bg-secondary);
+            padding: 14px; border-radius: var(--radius-md); text-align: center;
         }
-        .stat-box .number { font-size: 1.8rem; font-weight: 700; color: #333; }
-        .stat-box .label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.3px; }
-        /* --- Tabs --- */
+        .stat-box .number { font-size: 28px; font-weight: 700; color: var(--color-text); letter-spacing: -0.02em; }
+        .stat-box .label  { font-size: 11px; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
+
+        /* Tabs */
         .tabs {
-            display: flex; gap: 2px; background: #e9ecef;
-            border-radius: 10px; padding: 3px; margin-bottom: 20px;
+            display: flex; gap: 2px;
+            background: var(--color-bg-secondary);
+            border-radius: var(--radius-md); padding: 3px; margin-bottom: 20px;
         }
         .tab {
-            flex: 1; padding: 10px 12px; border: none; border-radius: 8px;
-            cursor: pointer; font-weight: 600; color: #666; font-size: 0.85rem;
-            background: transparent; transition: all 0.2s; font-family: inherit;
+            flex: 1; padding: 10px 12px; border: none; border-radius: var(--radius-sm);
+            cursor: pointer; font-weight: 600; color: var(--color-text-secondary);
+            font-size: 13px;
+            background: transparent; transition: background var(--duration-fast), color var(--duration-fast);
+            font-family: inherit;
         }
-        .tab.active { background: white; color: #667eea; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-        .tab:hover:not(.active) { color: #333; }
+        .tab.active {
+            background: var(--color-surface);
+            color: var(--color-primary);
+            box-shadow: var(--shadow-xs);
+        }
+        .tab:hover:not(.active) { color: var(--color-text); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+
         .section-title {
-            font-size: 1.1rem; font-weight: 600; color: #333;
-            margin: 0 0 16px 0; padding-bottom: 10px; border-bottom: 2px solid #667eea;
+            font-size: 17px; font-weight: 600; color: var(--color-text);
+            margin: 0 0 16px 0; padding-bottom: 10px;
+            border-bottom: 2px solid var(--color-primary);
+            letter-spacing: -0.01em;
         }
-        /* --- Articles --- */
+
+        /* Articles */
         .article {
-            padding: 20px; background: white; border-radius: 12px;
-            margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            transition: box-shadow 0.2s;
+            padding: 20px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+            margin-bottom: 12px;
+            transition: box-shadow var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out);
         }
-        .article:hover { box-shadow: 0 3px 12px rgba(0,0,0,0.1); }
+        .article:hover { box-shadow: var(--shadow-md); border-color: var(--color-border); }
         .article-header {
             display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;
         }
-        .article h3 { font-size: 1.05rem; color: #333; margin-bottom: 6px; line-height: 1.4; }
-        .article h3 a { color: #333; text-decoration: none; }
-        .article h3 a:hover { color: #667eea; }
+        .article h3 {
+            font-size: 16px; color: var(--color-text);
+            margin-bottom: 6px; line-height: 1.4; letter-spacing: -0.01em; font-weight: 600;
+        }
+        .article h3 a { color: var(--color-text); text-decoration: none; }
+        .article h3 a:hover { color: var(--color-primary); }
         .article-meta {
-            display: flex; gap: 10px; font-size: 0.8rem; color: #888; margin-bottom: 10px;
+            display: flex; gap: 10px; font-size: 12px;
+            color: var(--color-text-tertiary); margin-bottom: 10px;
             flex-wrap: wrap; align-items: center;
         }
-        .article-meta .source { font-weight: 600; color: #667eea; }
+        .article-meta .source { font-weight: 600; color: var(--color-primary); }
         .article-meta .topic {
-            background: #f0f4ff; color: #667eea; padding: 2px 10px;
-            border-radius: 20px; font-weight: 500;
+            background: var(--color-primary-soft); color: var(--color-primary);
+            padding: 2px 10px; border-radius: var(--radius-full); font-weight: 500;
         }
-        .smb-score { color: #f59e0b; font-size: 0.85rem; white-space: nowrap; }
-        .article p { color: #555; line-height: 1.6; font-size: 0.9rem; }
-        /* --- Key Bullets --- */
+        .smb-score { color: var(--color-warning); font-size: 13px; white-space: nowrap; }
+        .article p { color: var(--color-text-secondary); line-height: 1.6; font-size: 14px; }
+
         .key-bullets { margin: 8px 0; padding-left: 18px; }
-        .key-bullets li { color: #444; line-height: 1.6; font-size: 0.88rem; margin-bottom: 4px; }
-        /* --- What it Means --- */
+        .key-bullets li { color: var(--color-text-secondary); line-height: 1.6; font-size: 13px; margin-bottom: 4px; }
+
         .what-it-means {
-            margin: 12px 0; padding: 14px 16px; background: #f8faff;
-            border-radius: 8px; border-left: 3px solid #667eea;
+            margin: 12px 0; padding: 14px 16px;
+            background: var(--color-primary-soft);
+            border-radius: var(--radius-md); border-left: 3px solid var(--color-primary);
         }
-        .what-it-means h4 { font-size: 0.9rem; color: #667eea; margin-bottom: 10px; font-weight: 700; }
+        .what-it-means h4 { font-size: 13px; color: var(--color-primary); margin-bottom: 10px; font-weight: 700; }
         .what-it-means .impact-sub { margin-bottom: 8px; }
-        .what-it-means .impact-sub strong { font-size: 0.82rem; color: #333; }
-        .what-it-means .impact-sub p { font-size: 0.82rem; color: #666; margin-top: 2px; line-height: 1.5; }
-        /* --- Viral / Trending --- */
+        .what-it-means .impact-sub strong { font-size: 12px; color: var(--color-text); }
+        .what-it-means .impact-sub p { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; line-height: 1.5; }
+
         .viral-badge {
-            display: inline-block; background: #ef4444; color: white;
-            font-size: 0.65rem; font-weight: 700; padding: 2px 8px;
-            border-radius: 12px; margin-left: 8px; vertical-align: middle;
-            text-transform: uppercase; letter-spacing: 0.3px;
+            display: inline-block; background: var(--color-danger); color: white;
+            font-size: 9px; font-weight: 700; padding: 2px 8px;
+            border-radius: var(--radius-full); margin-left: 8px; vertical-align: middle;
+            text-transform: uppercase; letter-spacing: 0.04em;
         }
-        /* --- Content Suggestions --- */
+
         .content-suggestions {
-            margin: 12px 0; padding: 14px 16px; background: #fffbeb;
-            border-radius: 8px; border-left: 3px solid #f59e0b;
+            margin: 12px 0; padding: 14px 16px;
+            background: rgba(255,149,0,0.10);
+            border-radius: var(--radius-md); border-left: 3px solid var(--color-warning);
         }
-        .content-suggestions h4 { font-size: 0.85rem; color: #92400e; margin-bottom: 8px; font-weight: 700; }
+        .content-suggestions h4 { font-size: 12px; color: #92400e; margin-bottom: 8px; font-weight: 700; }
+        [data-theme="dark"] .content-suggestions h4 { color: #ffb24d; }
         .content-suggestions ul { padding-left: 18px; }
-        .content-suggestions li { font-size: 0.82rem; color: #78350f; line-height: 1.5; margin-bottom: 3px; }
-        /* --- Topic Sections --- */
+        .content-suggestions li { font-size: 12px; color: #78350f; line-height: 1.5; margin-bottom: 3px; }
+        [data-theme="dark"] .content-suggestions li { color: #ffd49a; }
+
         .topic-section { margin-bottom: 24px; }
         .topic-header {
-            font-size: 0.9rem; font-weight: 600; color: #667eea;
+            font-size: 13px; font-weight: 600; color: var(--color-primary);
             margin-bottom: 8px; padding: 10px 14px;
-            background: #f0f4ff; border-radius: 8px;
+            background: var(--color-primary-soft);
+            border-radius: var(--radius-md);
             display: flex; justify-content: space-between; align-items: center;
         }
-        .topic-header .count { font-size: 0.75rem; color: #999; }
+        .topic-header .count { font-size: 11px; color: var(--color-text-tertiary); }
         .quick-hit {
-            padding: 10px 14px; background: white; border-left: 3px solid #667eea;
-            margin-bottom: 6px; border-radius: 0 8px 8px 0;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            padding: 10px 14px; background: var(--color-surface);
+            border: 1px solid var(--color-border-subtle);
+            border-left: 3px solid var(--color-primary);
+            margin-bottom: 6px; border-radius: 0 var(--radius-md) var(--radius-md) 0;
         }
-        .quick-hit a { color: #333; text-decoration: none; font-weight: 500; font-size: 0.9rem; }
-        .quick-hit a:hover { color: #667eea; }
-        .quick-hit .meta { font-size: 0.75rem; color: #999; margin-top: 3px; }
-        /* --- Export --- */
-        .export-bar {
-            display: flex; gap: 8px; flex-wrap: wrap;
-        }
+        .quick-hit a { color: var(--color-text); text-decoration: none; font-weight: 500; font-size: 14px; }
+        .quick-hit a:hover { color: var(--color-primary); }
+        .quick-hit .meta { font-size: 11px; color: var(--color-text-tertiary); margin-top: 3px; }
+
+        /* Export */
+        .export-bar { display: flex; gap: 8px; flex-wrap: wrap; }
         .btn-export {
-            padding: 8px 16px; border: 1.5px solid #e0e0e0; border-radius: 8px;
-            background: white; font-size: 0.8rem; font-weight: 600; cursor: pointer;
-            color: #555; transition: all 0.15s; font-family: inherit;
+            padding: 8px 16px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            background: var(--color-surface);
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            color: var(--color-text-secondary);
+            transition: border-color var(--duration-fast), color var(--duration-fast);
+            font-family: inherit;
         }
-        .btn-export:hover { border-color: #667eea; color: #667eea; }
-        /* --- Article Action Buttons --- */
+        .btn-export:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+        /* Article actions */
         .article-actions {
             display: flex; gap: 8px; margin-top: 12px; padding-top: 12px;
-            border-top: 1px solid #e9ecef;
+            border-top: 1px solid var(--color-border-subtle);
         }
         .btn-article-action {
-            padding: 6px 14px; border: 1.5px solid #e0e0e0; border-radius: 6px;
-            background: white; font-size: 0.75rem; font-weight: 600; cursor: pointer;
-            color: #555; transition: all 0.15s; font-family: inherit;
+            padding: 6px 14px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: var(--color-surface);
+            font-size: 12px; font-weight: 600; cursor: pointer;
+            color: var(--color-text-secondary);
+            transition: border-color var(--duration-fast), color var(--duration-fast), background var(--duration-fast);
+            font-family: inherit;
             display: inline-flex; align-items: center; gap: 4px;
         }
-        .btn-article-action:hover { border-color: #667eea; color: #667eea; background: #f8f9ff; }
+        .btn-article-action:hover {
+            border-color: var(--color-primary); color: var(--color-primary);
+            background: var(--color-primary-soft);
+        }
         .btn-article-action:disabled { opacity: 0.5; cursor: not-allowed; }
-        /* --- Modal --- */
+
+        /* Modal */
         .modal {
             display: none; position: fixed; z-index: 1000; left: 0; top: 0;
             width: 100%; height: 100%; overflow: auto;
@@ -321,799 +359,800 @@
         .modal.show { display: flex; align-items: center; justify-content: center; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .modal-content {
-            background: white; margin: auto; padding: 0; border-radius: 12px;
+            background: var(--color-surface); margin: auto; padding: 0;
+            border-radius: var(--radius-lg);
             width: 90%; max-width: 700px; max-height: 80vh;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15); animation: slideDown 0.3s;
+            box-shadow: var(--shadow-lg); animation: slideDown 0.3s;
         }
         @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .modal-header {
-            padding: 20px 24px; border-bottom: 1px solid #e9ecef;
+            padding: 20px 24px; border-bottom: 1px solid var(--color-border-subtle);
             display: flex; justify-content: space-between; align-items: center;
             cursor: move; user-select: none;
         }
-        .modal-header h3 { font-size: 1.1rem; color: #333; margin: 0; }
+        .modal-header h3 { font-size: 17px; color: var(--color-text); margin: 0; font-weight: 600; }
         .modal-close {
-            background: none; border: none; font-size: 1.5rem; color: #999;
+            background: none; border: none; font-size: 22px;
+            color: var(--color-text-tertiary);
             cursor: pointer; padding: 0; width: 30px; height: 30px;
             display: flex; align-items: center; justify-content: center;
-            border-radius: 6px; transition: all 0.15s;
+            border-radius: var(--radius-sm);
+            transition: background var(--duration-fast), color var(--duration-fast);
         }
-        .modal-close:hover { background: #f0f2f5; color: #333; }
+        .modal-close:hover { background: var(--color-bg-secondary); color: var(--color-text); }
         .modal-body {
             padding: 24px; max-height: calc(80vh - 140px); overflow-y: auto;
         }
         .modal-body .loading {
-            text-align: center; padding: 40px; color: #999;
+            text-align: center; padding: 40px; color: var(--color-text-tertiary);
         }
         .modal-body .spinner {
-            border: 3px solid #f3f3f3; border-top: 3px solid #667eea;
+            border: 3px solid var(--color-border-subtle);
+            border-top: 3px solid var(--color-primary);
             border-radius: 50%; width: 40px; height: 40px;
             animation: spin 1s linear infinite; margin: 0 auto 16px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .modal-body .summary-content { line-height: 1.7; color: #444; font-size: 0.9rem; }
-        .modal-body .summary-content h4 { font-size: 0.95rem; color: #667eea; margin: 16px 0 8px; }
+        .modal-body .summary-content { line-height: 1.7; color: var(--color-text-secondary); font-size: 14px; }
+        .modal-body .summary-content h4 { font-size: 14px; color: var(--color-primary); margin: 16px 0 8px; }
         .modal-body .summary-content ul { padding-left: 20px; margin: 8px 0; }
         .modal-body .summary-content li { margin-bottom: 6px; }
-        /* --- Footer --- */
-        .footer { text-align: center; padding: 24px; color: #bbb; font-size: 0.8rem; }
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <a href="/" class="navbar-brand">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 11a9 9 0 0 1 9 9"></path>
-                <path d="M4 4a16 16 0 0 1 16 16"></path>
-                <circle cx="5" cy="19" r="1"></circle>
-            </svg>
-            AI.JBHerrera
-        </a>
-        <div class="navbar-links">
-            <a href="/" class="navbar-link">Home</a>
-            <a href="/digest" class="navbar-link active">Digest</a>
-            <a href="/admin" class="navbar-link">Admin</a>
-        </div>
-    </nav>
 
-    <div class="topbar">
-        <h1>AI News Digest Generator</h1>
-        <p>50+ AI sources — news, newsletters, and company blogs</p>
-    </div>
+<!-- Nav -->
+<nav class="navbar">
+  <a href="/" class="navbar-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M12 16v-4"></path>
+      <path d="M12 8h.01"></path>
+    </svg>
+    AI.JBHerrera
+  </a>
+  <div class="navbar-links">
+    <a href="/digest"   class="navbar-link active">AI Digest</a>
+    <a href="/ai-stack" class="navbar-link">AI Stack</a>
+    <a href="/skills"   class="navbar-link">Skills</a>
+    <a href="/admin"    class="navbar-link">Admin</a>
+    <a href="https://jbherrera.com" class="navbar-link" target="_blank" rel="noopener">Main Site</a>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
+  </div>
+</nav>
 
-    <div class="layout">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="card">
-                <h2>Time Range</h2>
-                <select id="days">
-                    <option value="1">Past 24 hours</option>
-                    <option value="3">Past 3 days</option>
-                    <option value="7" selected>Past 7 days</option>
-                    <option value="14">Past 2 weeks</option>
-                </select>
-            </div>
+<div class="topbar">
+    <h1>AI News Digest Generator</h1>
+    <p>50+ AI sources — news, newsletters, and company blogs</p>
+</div>
 
-            <div class="card" style="flex:1; overflow-y: auto; max-height: 55vh;">
-                <h2>Sources</h2>
-                <div class="source-toolbar">
-                    <div class="search-wrap">
-                        <input type="text" id="feedSearch" placeholder="Filter sources..." oninput="filterFeeds()">
-                    </div>
-                    <button class="pill-btn" onclick="selectAllFeeds()">All</button>
-                    <button class="pill-btn" onclick="deselectAllFeeds()">None</button>
-                </div>
-                <div class="source-count" id="sourceCount"></div>
-                <div id="feedsContainer"></div>
-            </div>
-
-            <div class="card">
-                <button class="btn-generate" id="generateBtn" onclick="generateDigest()">
-                    Generate Digest
-                </button>
-                <div class="progress-container" id="progressContainer">
-                    <div class="progress-bar">
-                        <div class="progress-bar-fill" id="progressFill"></div>
-                    </div>
-                    <div class="progress-text" id="progressText">Starting...</div>
-                </div>
-            </div>
+<div class="layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="card">
+            <h2>Time Range</h2>
+            <select id="days">
+                <option value="1">Past 24 hours</option>
+                <option value="3">Past 3 days</option>
+                <option value="7" selected>Past 7 days</option>
+                <option value="14">Past 2 weeks</option>
+            </select>
         </div>
 
-        <!-- Main Content -->
-        <div class="main">
-            <div id="placeholder" class="card placeholder-msg">
-                <h3>Your digest will appear here</h3>
-                <p>Select sources and time range, then click Generate Digest.</p>
+        <div class="card" style="flex:1; overflow-y: auto; max-height: 55vh;">
+            <h2>Sources</h2>
+            <div class="source-toolbar">
+                <div class="search-wrap">
+                    <input type="text" id="feedSearch" placeholder="Filter sources..." oninput="filterFeeds()">
+                </div>
+                <button class="pill-btn" onclick="selectAllFeeds()">All</button>
+                <button class="pill-btn" onclick="deselectAllFeeds()">None</button>
             </div>
+            <div class="source-count" id="sourceCount"></div>
+            <div id="feedsContainer"></div>
+        </div>
 
-            <div class="results" id="resultsCard">
-                <div class="stats-panel">
-                    <div class="stats-date" id="statsDate"></div>
-                    <div class="stats" id="stats"></div>
+        <div class="card">
+            <button class="btn-generate" id="generateBtn" onclick="generateDigest()">
+                Generate Digest
+            </button>
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-bar-fill" id="progressFill"></div>
                 </div>
-
-                <div class="card" style="margin-bottom: 16px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                        <div class="tabs" style="margin-bottom:0; flex:1; max-width: 500px;">
-                            <button class="tab active" onclick="showTab('top', this)">Top Stories</button>
-                            <button class="tab" onclick="showTab('smb', this)">SMB Spotlight</button>
-                            <button class="tab" onclick="showTab('topics', this)">By Topic</button>
-                            <button class="tab" onclick="showTab('all', this)">All</button>
-                        </div>
-                        <div class="export-bar">
-                            <button class="btn-export" onclick="exportMarkdown()">Export .md</button>
-                            <button class="btn-export" onclick="copyToClipboard()">Copy</button>
-                        </div>
-                    </div>
-
-                    <div id="topStoriesTab" class="tab-content active">
-                        <div class="section-title">Top Stories This Week</div>
-                        <div id="topStories"></div>
-                    </div>
-                    <div id="smbTab" class="tab-content">
-                        <div class="section-title">SMB AI Spotlight</div>
-                        <div id="smbSpotlight"></div>
-                    </div>
-                    <div id="topicsTab" class="tab-content">
-                        <div class="section-title">Quick Hits by Topic</div>
-                        <div id="byTopic"></div>
-                    </div>
-                    <div id="allTab" class="tab-content">
-                        <div class="section-title">All Articles</div>
-                        <div id="allArticles"></div>
-                    </div>
-                </div>
+                <div class="progress-text" id="progressText">Starting...</div>
             </div>
         </div>
     </div>
 
-    <!-- Summary Modal -->
-    <div id="summaryModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modalTitle">Article Summary</h3>
-                <button class="modal-close" onclick="closeSummaryModal()">&times;</button>
+    <!-- Main Content -->
+    <div class="main">
+        <div id="placeholder" class="card placeholder-msg">
+            <h3>Your digest will appear here</h3>
+            <p>Select sources and time range, then click Generate Digest.</p>
+        </div>
+
+        <div class="results" id="resultsCard">
+            <div class="stats-panel">
+                <div class="stats-date" id="statsDate"></div>
+                <div class="stats" id="stats"></div>
             </div>
-            <div class="modal-body" id="modalBody">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Generating summary...</p>
+
+            <div class="card" style="margin-bottom: 16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                    <div class="tabs" style="margin-bottom:0; flex:1; max-width: 500px;">
+                        <button class="tab active" onclick="showTab('top', this)">Top Stories</button>
+                        <button class="tab" onclick="showTab('smb', this)">SMB Spotlight</button>
+                        <button class="tab" onclick="showTab('topics', this)">By Topic</button>
+                        <button class="tab" onclick="showTab('all', this)">All</button>
+                    </div>
+                    <div class="export-bar">
+                        <button class="btn-export" onclick="exportMarkdown()">Export .md</button>
+                        <button class="btn-export" onclick="copyToClipboard()">Copy</button>
+                    </div>
+                </div>
+
+                <div id="topStoriesTab" class="tab-content active">
+                    <div class="section-title">Top Stories This Week</div>
+                    <div id="topStories"></div>
+                </div>
+                <div id="smbTab" class="tab-content">
+                    <div class="section-title">SMB AI Spotlight</div>
+                    <div id="smbSpotlight"></div>
+                </div>
+                <div id="topicsTab" class="tab-content">
+                    <div class="section-title">Quick Hits by Topic</div>
+                    <div id="byTopic"></div>
+                </div>
+                <div id="allTab" class="tab-content">
+                    <div class="section-title">All Articles</div>
+                    <div id="allArticles"></div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="footer">Built for Synergi AI / Insight Driven Business</div>
+<!-- Summary Modal -->
+<div id="summaryModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">Article Summary</h3>
+            <button class="modal-close" onclick="closeSummaryModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Generating summary...</p>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <script>
-        let digestData = null;
-        let allFeeds = {};
+<footer class="site-footer">Built for Synergi AI / Insight Driven Business</footer>
 
-        // --- Source category display order and labels ---
-        const CATEGORY_ORDER = [
-            { key: 'Tech News,Consumer Tech,Tech Culture,Deep Tech,Business Tech,AI News', label: 'News Outlets' },
-            { key: 'Enterprise AI', label: 'Enterprise AI' },
-            { key: 'Company News,Company Blog', label: 'Company Blogs' },
-            { key: 'AI Platform', label: 'AI Platforms' },
-            { key: 'AI Infrastructure', label: 'AI Infrastructure' },
-            { key: 'Cloud AI', label: 'Cloud Platforms' },
-            { key: 'Productivity AI', label: 'Productivity AI' },
-            { key: 'Newsletter', label: 'Newsletters' },
-            { key: 'Substack', label: 'Substack Subscriptions' },
-            { key: 'Medium', label: 'Medium Follows' },
-            { key: 'Research & Policy', label: 'Research & Policy' },
-        ];
+<script>
+    document.getElementById('themeToggle').addEventListener('click', function(){
+      var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+    });
 
-        function getFeedType(feed) {
-            if (feed.type === 'newsletter') return 'newsletter';
-            if (feed.type === 'blog') return 'blog';
-            return 'news';
-        }
+    let digestData = null;
+    let allFeeds = {};
 
-        function getFeedTypeLabel(type) {
-            if (type === 'blog') return '<span class="feed-type feed-type-blog">Blog</span>';
-            if (type === 'newsletter') return '<span class="feed-type feed-type-newsletter">NL</span>';
-            return '';
-        }
+    // --- Source category display order and labels ---
+    const CATEGORY_ORDER = [
+        { key: 'Tech News,Consumer Tech,Tech Culture,Deep Tech,Business Tech,AI News', label: 'News Outlets' },
+        { key: 'Enterprise AI', label: 'Enterprise AI' },
+        { key: 'Company News,Company Blog', label: 'Company Blogs' },
+        { key: 'AI Platform', label: 'AI Platforms' },
+        { key: 'AI Infrastructure', label: 'AI Infrastructure' },
+        { key: 'Cloud AI', label: 'Cloud Platforms' },
+        { key: 'Productivity AI', label: 'Productivity AI' },
+        { key: 'Newsletter', label: 'Newsletters' },
+        { key: 'Substack', label: 'Substack Subscriptions' },
+        { key: 'Medium', label: 'Medium Follows' },
+        { key: 'Research & Policy', label: 'Research & Policy' },
+    ];
 
-        // Group feeds into display categories
-        function groupFeeds(feeds) {
-            const groups = [];
-            const assigned = new Set();
+    function getFeedType(feed) {
+        if (feed.type === 'newsletter') return 'newsletter';
+        if (feed.type === 'blog') return 'blog';
+        return 'news';
+    }
 
-            for (const catDef of CATEGORY_ORDER) {
-                const cats = catDef.key.split(',');
-                const items = [];
-                for (const [name, config] of Object.entries(feeds)) {
-                    if (cats.includes(config.category) && !assigned.has(name)) {
-                        items.push({ name, config });
-                        assigned.add(name);
-                    }
-                }
-                if (items.length > 0) {
-                    groups.push({ label: catDef.label, items });
-                }
-            }
+    function getFeedTypeLabel(type) {
+        if (type === 'blog') return '<span class="feed-type feed-type-blog">Blog</span>';
+        if (type === 'newsletter') return '<span class="feed-type feed-type-newsletter">NL</span>';
+        return '';
+    }
 
-            // Catch any uncategorized
-            const remaining = [];
+    // Group feeds into display categories
+    function groupFeeds(feeds) {
+        const groups = [];
+        const assigned = new Set();
+
+        for (const catDef of CATEGORY_ORDER) {
+            const cats = catDef.key.split(',');
+            const items = [];
             for (const [name, config] of Object.entries(feeds)) {
-                if (!assigned.has(name)) {
-                    remaining.push({ name, config });
+                if (cats.includes(config.category) && !assigned.has(name)) {
+                    items.push({ name, config });
                     assigned.add(name);
                 }
             }
-            if (remaining.length > 0) {
-                groups.push({ label: 'Other', items: remaining });
-            }
-
-            return groups;
-        }
-
-        async function loadFeeds() {
-            try {
-                const resp = await fetch('/api/feeds');
-                allFeeds = await resp.json();
-                renderFeeds();
-            } catch (e) {
-                console.error('Failed to load feeds:', e);
+            if (items.length > 0) {
+                groups.push({ label: catDef.label, items });
             }
         }
 
-        function renderFeeds(filter = '') {
-            const container = document.getElementById('feedsContainer');
-            const groups = groupFeeds(allFeeds);
-            const lowerFilter = filter.toLowerCase();
+        // Catch any uncategorized
+        const remaining = [];
+        for (const [name, config] of Object.entries(feeds)) {
+            if (!assigned.has(name)) {
+                remaining.push({ name, config });
+                assigned.add(name);
+            }
+        }
+        if (remaining.length > 0) {
+            groups.push({ label: 'Other', items: remaining });
+        }
 
-            let html = '';
-            let totalShown = 0;
-            let totalChecked = 0;
+        return groups;
+    }
 
-            for (const group of groups) {
-                const filtered = group.items.filter(f =>
-                    !lowerFilter || f.name.toLowerCase().includes(lowerFilter) ||
-                    f.config.category.toLowerCase().includes(lowerFilter)
-                );
-                if (filtered.length === 0) continue;
+    async function loadFeeds() {
+        try {
+            const resp = await fetch('/api/feeds');
+            allFeeds = await resp.json();
+            renderFeeds();
+        } catch (e) {
+            console.error('Failed to load feeds:', e);
+        }
+    }
 
-                const groupId = group.label.replace(/\s+/g, '_');
-                totalShown += filtered.length;
+    function renderFeeds(filter = '') {
+        const container = document.getElementById('feedsContainer');
+        const groups = groupFeeds(allFeeds);
+        const lowerFilter = filter.toLowerCase();
 
-                html += `<div class="category-group open" id="grp_${groupId}">
-                    <button class="category-toggle" onclick="toggleGroup('${groupId}')">
-                        <span class="cat-label">
-                            <span class="arrow">&#9654;</span>
-                            ${group.label}
-                            <span class="cat-count">${filtered.length}</span>
-                        </span>
-                        <span class="cat-check" onclick="event.stopPropagation(); toggleCategory('${groupId}')">toggle</span>
-                    </button>
-                    <div class="category-feeds">`;
+        let html = '';
+        let totalShown = 0;
+        let totalChecked = 0;
 
-                for (const f of filtered) {
-                    const type = getFeedType(f.config);
-                    html += `<label class="feed-item">
-                        <input type="checkbox" name="feed" value="${f.name}" checked>
-                        <span>${f.name}</span>
-                        ${getFeedTypeLabel(type)}
-                    </label>`;
+        for (const group of groups) {
+            const filtered = group.items.filter(f =>
+                !lowerFilter || f.name.toLowerCase().includes(lowerFilter) ||
+                f.config.category.toLowerCase().includes(lowerFilter)
+            );
+            if (filtered.length === 0) continue;
+
+            const groupId = group.label.replace(/\s+/g, '_');
+            totalShown += filtered.length;
+
+            html += `<div class="category-group open" id="grp_${groupId}">
+                <button class="category-toggle" onclick="toggleGroup('${groupId}')">
+                    <span class="cat-label">
+                        <span class="arrow">&#9654;</span>
+                        ${group.label}
+                        <span class="cat-count">${filtered.length}</span>
+                    </span>
+                    <span class="cat-check" onclick="event.stopPropagation(); toggleCategory('${groupId}')">toggle</span>
+                </button>
+                <div class="category-feeds">`;
+
+            for (const f of filtered) {
+                const type = getFeedType(f.config);
+                html += `<label class="feed-item">
+                    <input type="checkbox" name="feed" value="${f.name}" checked>
+                    <span>${f.name}</span>
+                    ${getFeedTypeLabel(type)}
+                </label>`;
+            }
+
+            html += `</div></div>`;
+        }
+
+        container.innerHTML = html;
+        updateSourceCount();
+    }
+
+    function updateSourceCount() {
+        const all = document.querySelectorAll('input[name="feed"]');
+        const checked = document.querySelectorAll('input[name="feed"]:checked');
+        document.getElementById('sourceCount').textContent =
+            `${checked.length} of ${all.length} sources selected`;
+    }
+
+    // Attach change listener for live count updates
+    document.addEventListener('change', (e) => {
+        if (e.target.name === 'feed') updateSourceCount();
+    });
+
+    function toggleGroup(groupId) {
+        document.getElementById('grp_' + groupId).classList.toggle('open');
+    }
+
+    function toggleCategory(groupId) {
+        const group = document.getElementById('grp_' + groupId);
+        const checks = group.querySelectorAll('input[name="feed"]');
+        const allChecked = Array.from(checks).every(c => c.checked);
+        checks.forEach(c => c.checked = !allChecked);
+        updateSourceCount();
+    }
+
+    function filterFeeds() {
+        const q = document.getElementById('feedSearch').value;
+        renderFeeds(q);
+    }
+
+    function selectAllFeeds() {
+        document.querySelectorAll('input[name="feed"]').forEach(cb => cb.checked = true);
+        updateSourceCount();
+    }
+    function deselectAllFeeds() {
+        document.querySelectorAll('input[name="feed"]').forEach(cb => cb.checked = false);
+        updateSourceCount();
+    }
+    function getSelectedFeeds() {
+        return Array.from(document.querySelectorAll('input[name="feed"]:checked')).map(cb => cb.value);
+    }
+
+    async function generateDigest() {
+        const btn = document.getElementById('generateBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const resultsCard = document.getElementById('resultsCard');
+        const placeholder = document.getElementById('placeholder');
+
+        const feeds = getSelectedFeeds();
+        if (feeds.length === 0) {
+            alert('Please select at least one feed source.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Generating...';
+        progressContainer.style.display = 'block';
+        resultsCard.classList.remove('show');
+        placeholder.style.display = 'none';
+
+        const days = parseInt(document.getElementById('days').value);
+        let completed = 0;
+        const total = feeds.length;
+        let allArticles = [];
+        let errors = [];
+
+        function updateProgress(feedName) {
+            completed++;
+            const pct = Math.round((completed / total) * 100);
+            document.getElementById('progressFill').style.width = pct + '%';
+            document.getElementById('progressText').textContent =
+                `Fetched ${completed}/${total}: ${feedName}`;
+        }
+
+        const promises = feeds.map(name =>
+            fetch('/api/fetch-feed', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, days })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    allArticles.push(...data.articles);
+                } else if (data.error) {
+                    errors.push({ source: name, error: data.error });
                 }
+                updateProgress(name);
+            })
+            .catch(err => {
+                errors.push({ source: name, error: err.message });
+                updateProgress(name);
+            })
+        );
 
-                html += `</div></div>`;
+        await Promise.all(promises);
+
+        // Remove duplicates based on article link
+        const seenLinks = new Set();
+        allArticles = allArticles.filter(article => {
+            if (seenLinks.has(article.link)) {
+                return false;
             }
-
-            container.innerHTML = html;
-            updateSourceCount();
-        }
-
-        function updateSourceCount() {
-            const all = document.querySelectorAll('input[name="feed"]');
-            const checked = document.querySelectorAll('input[name="feed"]:checked');
-            document.getElementById('sourceCount').textContent =
-                `${checked.length} of ${all.length} sources selected`;
-        }
-
-        // Attach change listener for live count updates
-        document.addEventListener('change', (e) => {
-            if (e.target.name === 'feed') updateSourceCount();
+            seenLinks.add(article.link);
+            return true;
         });
 
-        function toggleGroup(groupId) {
-            document.getElementById('grp_' + groupId).classList.toggle('open');
+        allArticles.sort((a, b) => b.published.localeCompare(a.published));
+
+        const byTopic = {};
+        allArticles.forEach(a => {
+            if (!byTopic[a.topic]) byTopic[a.topic] = [];
+            byTopic[a.topic].push(a);
+        });
+
+        const topStories = [...allArticles]
+            .sort((a, b) => a.priority - b.priority || b.published.localeCompare(a.published))
+            .slice(0, 5);
+
+        const smbSpotlight = allArticles
+            .filter(a => a.smb_score >= 4)
+            .sort((a, b) => b.smb_score - a.smb_score)
+            .slice(0, 3);
+
+        digestData = {
+            stats: {
+                total_articles: allArticles.length,
+                sources_checked: total,
+                sources_with_errors: errors.length,
+                errors,
+                generated_at: new Date().toISOString()
+            },
+            top_stories: topStories,
+            smb_spotlight: smbSpotlight,
+            by_topic: byTopic,
+            all_articles: allArticles
+        };
+
+        document.getElementById('progressFill').style.width = '100%';
+        document.getElementById('progressText').textContent = 'Complete!';
+
+        setTimeout(() => {
+            buildArticleLookup();
+            displayResults(digestData);
+            progressContainer.style.display = 'none';
+            resultsCard.classList.add('show');
+            btn.disabled = false;
+            btn.textContent = 'Generate Digest';
+        }, 400);
+    }
+
+    function renderArticleCard(a) {
+        const articleId = hashId(a.link);
+        return `
+            <div class="article" data-article-id="${articleId}">
+                <div class="article-header">
+                    <h3><a href="${a.link}" target="_blank">${a.title}</a>${a.viral_score >= 4 ? '<span class="viral-badge">Trending</span>' : ''}</h3>
+                    <span class="smb-score">${'\u2605'.repeat(a.smb_score || 0)}${'\u2606'.repeat(10 - (a.smb_score || 0))}</span>
+                </div>
+                <div class="article-meta">
+                    <span class="source">${a.source}</span>
+                    <span>${a.published_display}</span>
+                    <span class="topic">${a.topic}</span>
+                </div>
+                ${a.key_bullets && a.key_bullets.length > 0 ? `
+                    <ul class="key-bullets">
+                        ${a.key_bullets.map(b => `<li>${b}</li>`).join('')}
+                    </ul>
+                ` : `<p>${a.summary}</p>`}
+                ${a.impact ? `
+                    <div class="what-it-means">
+                        <h4>What it Means</h4>
+                        <div class="impact-sub"><strong>General Impact:</strong><p>${a.impact.general_impact}</p></div>
+                        <div class="impact-sub"><strong>Impact to SMBs:</strong><p>${a.impact.smb_impact}</p></div>
+                    </div>
+                ` : ''}
+                ${a.content_suggestions ? `
+                    <div class="content-suggestions">
+                        <h4>Content Ideas (Trending Topic)</h4>
+                        <ul>${a.content_suggestions.map(s => `<li>${s}</li>`).join('')}</ul>
+                    </div>
+                ` : ''}
+                <div class="article-actions">
+                    <button class="btn-article-action" onclick="showSummary('${articleId}', 'tldr')">
+                        📝 TL;DR
+                    </button>
+                    <button class="btn-article-action" onclick="showSummary('${articleId}', 'executive')">
+                        📊 Executive Summary
+                    </button>
+                </div>
+            </div>`;
+    }
+
+    function displayResults(data) {
+        const days = parseInt(document.getElementById('days').value);
+        const now = new Date();
+        const from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+        const dateOpts = { month: 'short', day: 'numeric', year: 'numeric' };
+        const fromStr = from.toLocaleDateString('en-US', dateOpts);
+        const toStr = now.toLocaleDateString('en-US', dateOpts);
+        const dateLabel = days === 1
+            ? `📅 ${toStr} (past 24 hours)`
+            : `📅 ${fromStr} – ${toStr}`;
+
+        document.getElementById('statsDate').innerHTML = dateLabel;
+        document.getElementById('stats').innerHTML = `
+            <div class="stat-box"><div class="number">${data.stats.total_articles}</div><div class="label">Articles</div></div>
+            <div class="stat-box"><div class="number">${data.stats.sources_checked}</div><div class="label">Sources</div></div>
+            <div class="stat-box"><div class="number">${data.top_stories.length}</div><div class="label">Top Stories</div></div>
+            <div class="stat-box"><div class="number">${data.smb_spotlight.length}</div><div class="label">SMB Relevant</div></div>
+        `;
+
+        document.getElementById('topStories').innerHTML = data.top_stories.map(a => renderArticleCard(a)).join('');
+
+        document.getElementById('smbSpotlight').innerHTML = data.smb_spotlight.length > 0
+            ? data.smb_spotlight.map(a => renderArticleCard(a)).join('')
+            : '<p style="color:var(--color-text-tertiary);padding:20px;text-align:center;">No highly SMB-relevant articles found this period.</p>';
+
+        const topicOrder = ['Big Tech', 'Funding & Deals', 'Product News', 'Research', 'Policy & Regulation', 'SMB Focus', 'General AI News'];
+        document.getElementById('byTopic').innerHTML = topicOrder
+            .filter(t => data.by_topic[t] && data.by_topic[t].length > 0)
+            .map(t => `
+                <div class="topic-section">
+                    <div class="topic-header">
+                        <span>${t}</span>
+                        <span class="count">${data.by_topic[t].length} articles</span>
+                    </div>
+                    ${data.by_topic[t].slice(0, 5).map(a => renderArticleCard(a)).join('')}
+                </div>
+            `).join('');
+
+        document.getElementById('allArticles').innerHTML = data.all_articles.map(a => renderArticleCard(a)).join('');
+    }
+
+    function showTab(tab, el) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        const tabMap = { top: 'topStoriesTab', smb: 'smbTab', topics: 'topicsTab', all: 'allTab' };
+        document.getElementById(tabMap[tab]).classList.add('active');
+    }
+
+    async function exportMarkdown() {
+        if (!digestData) return;
+        const response = await fetch('/api/export', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                top_stories: digestData.top_stories,
+                smb_spotlight: digestData.smb_spotlight,
+                all_articles: digestData.all_articles
+            })
+        });
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'ai_digest.md';
+        a.click();
+    }
+
+    function copyToClipboard() {
+        if (!digestData) return;
+        let text = "AI NEWS DIGEST\n\nTOP STORIES\n" + "-".repeat(40) + "\n\n";
+        digestData.top_stories.forEach((a, i) => {
+            text += `${i + 1}. ${a.title}\n   ${a.source} | ${a.published_display}\n   ${a.link}\n\n`;
+        });
+        navigator.clipboard.writeText(text).then(() => alert('Digest copied to clipboard!'));
+    }
+
+    // --- Summary Modal Functions ---
+    // Generate a unique short hash from a string
+    function hashId(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const ch = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + ch;
+            hash |= 0;
         }
+        return 'a' + Math.abs(hash).toString(36);
+    }
 
-        function toggleCategory(groupId) {
-            const group = document.getElementById('grp_' + groupId);
-            const checks = group.querySelectorAll('input[name="feed"]');
-            const allChecked = Array.from(checks).every(c => c.checked);
-            checks.forEach(c => c.checked = !allChecked);
-            updateSourceCount();
-        }
+    // Build a lookup map from articleId to article object
+    let articleLookup = {};
 
-        function filterFeeds() {
-            const q = document.getElementById('feedSearch').value;
-            renderFeeds(q);
-        }
+    function buildArticleLookup() {
+        if (!digestData) return;
+        articleLookup = {};
+        digestData.all_articles.forEach(a => {
+            articleLookup[hashId(a.link)] = a;
+        });
+    }
 
-        function selectAllFeeds() {
-            document.querySelectorAll('input[name="feed"]').forEach(cb => cb.checked = true);
-            updateSourceCount();
-        }
-        function deselectAllFeeds() {
-            document.querySelectorAll('input[name="feed"]').forEach(cb => cb.checked = false);
-            updateSourceCount();
-        }
-        function getSelectedFeeds() {
-            return Array.from(document.querySelectorAll('input[name="feed"]:checked')).map(cb => cb.value);
-        }
+    function showSummary(articleId, summaryType) {
+        const article = articleLookup[articleId];
+        if (!article) return;
 
-        async function generateDigest() {
-            const btn = document.getElementById('generateBtn');
-            const progressContainer = document.getElementById('progressContainer');
-            const resultsCard = document.getElementById('resultsCard');
-            const placeholder = document.getElementById('placeholder');
+        const modal = document.getElementById('summaryModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalBody = document.getElementById('modalBody');
 
-            const feeds = getSelectedFeeds();
-            if (feeds.length === 0) {
-                alert('Please select at least one feed source.');
-                return;
-            }
+        modalTitle.textContent = summaryType === 'tldr' ? 'TL;DR Summary' : 'Executive Summary';
 
-            btn.disabled = true;
-            btn.textContent = 'Generating...';
-            progressContainer.style.display = 'block';
-            resultsCard.classList.remove('show');
-            placeholder.style.display = 'none';
+        const label = summaryType === 'tldr' ? 'TL;DR' : 'executive summary';
+        modalBody.innerHTML = `
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Generating ${label}...</p>
+            </div>
+        `;
 
-            const days = parseInt(document.getElementById('days').value);
-            let completed = 0;
-            const total = feeds.length;
-            let allArticles = [];
-            let errors = [];
+        modal.classList.add('show');
 
-            function updateProgress(feedName) {
-                completed++;
-                const pct = Math.round((completed / total) * 100);
-                document.getElementById('progressFill').style.width = pct + '%';
-                document.getElementById('progressText').textContent =
-                    `Fetched ${completed}/${total}: ${feedName}`;
-            }
-
-            const promises = feeds.map(name =>
-                fetch('/api/fetch-feed', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, days })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        allArticles.push(...data.articles);
-                    } else if (data.error) {
-                        errors.push({ source: name, error: data.error });
-                    }
-                    updateProgress(name);
-                })
-                .catch(err => {
-                    errors.push({ source: name, error: err.message });
-                    updateProgress(name);
-                })
-            );
-
-            await Promise.all(promises);
-
-            // Remove duplicates based on article link
-            const seenLinks = new Set();
-            allArticles = allArticles.filter(article => {
-                if (seenLinks.has(article.link)) {
-                    return false;
-                }
-                seenLinks.add(article.link);
-                return true;
+        generateSummary(article, summaryType)
+            .then(summary => {
+                modalBody.innerHTML = `<div class="summary-content">${summary}</div>`;
+            })
+            .catch(error => {
+                modalBody.innerHTML = `
+                    <div class="summary-content">
+                        <p style="color: var(--color-danger);">Error generating summary: ${error.message}</p>
+                        <p style="margin-top: 12px;">Please try again or visit the article directly: <a href="${article.link}" target="_blank">Read article</a></p>
+                    </div>
+                `;
             });
+    }
 
-            allArticles.sort((a, b) => b.published.localeCompare(a.published));
+    function closeSummaryModal() {
+        const modal = document.getElementById('summaryModal');
+        modal.classList.remove('show');
+    }
 
-            const byTopic = {};
-            allArticles.forEach(a => {
-                if (!byTopic[a.topic]) byTopic[a.topic] = [];
-                byTopic[a.topic].push(a);
-            });
-
-            const topStories = [...allArticles]
-                .sort((a, b) => a.priority - b.priority || b.published.localeCompare(a.published))
-                .slice(0, 5);
-
-            const smbSpotlight = allArticles
-                .filter(a => a.smb_score >= 4)
-                .sort((a, b) => b.smb_score - a.smb_score)
-                .slice(0, 3);
-
-            digestData = {
-                stats: {
-                    total_articles: allArticles.length,
-                    sources_checked: total,
-                    sources_with_errors: errors.length,
-                    errors,
-                    generated_at: new Date().toISOString()
-                },
-                top_stories: topStories,
-                smb_spotlight: smbSpotlight,
-                by_topic: byTopic,
-                all_articles: allArticles
-            };
-
-            document.getElementById('progressFill').style.width = '100%';
-            document.getElementById('progressText').textContent = 'Complete!';
-
-            setTimeout(() => {
-                buildArticleLookup();
-                displayResults(digestData);
-                progressContainer.style.display = 'none';
-                resultsCard.classList.add('show');
-                btn.disabled = false;
-                btn.textContent = 'Generate Digest';
-            }, 400);
+    window.onclick = function(event) {
+        const modal = document.getElementById('summaryModal');
+        if (event.target === modal) {
+            closeSummaryModal();
         }
+    }
 
-        function renderArticleCard(a) {
-            const articleId = hashId(a.link);
-            return `
-                <div class="article" data-article-id="${articleId}">
-                    <div class="article-header">
-                        <h3><a href="${a.link}" target="_blank">${a.title}</a>${a.viral_score >= 4 ? '<span class="viral-badge">Trending</span>' : ''}</h3>
-                        <span class="smb-score">${'\u2605'.repeat(a.smb_score || 0)}${'\u2606'.repeat(10 - (a.smb_score || 0))}</span>
-                    </div>
-                    <div class="article-meta">
-                        <span class="source">${a.source}</span>
-                        <span>${a.published_display}</span>
-                        <span class="topic">${a.topic}</span>
-                    </div>
-                    ${a.key_bullets && a.key_bullets.length > 0 ? `
-                        <ul class="key-bullets">
-                            ${a.key_bullets.map(b => `<li>${b}</li>`).join('')}
-                        </ul>
-                    ` : `<p>${a.summary}</p>`}
-                    ${a.impact ? `
-                        <div class="what-it-means">
-                            <h4>What it Means</h4>
-                            <div class="impact-sub"><strong>General Impact:</strong><p>${a.impact.general_impact}</p></div>
-                            <div class="impact-sub"><strong>Impact to SMBs:</strong><p>${a.impact.smb_impact}</p></div>
-                        </div>
-                    ` : ''}
-                    ${a.content_suggestions ? `
-                        <div class="content-suggestions">
-                            <h4>Content Ideas (Trending Topic)</h4>
-                            <ul>${a.content_suggestions.map(s => `<li>${s}</li>`).join('')}</ul>
-                        </div>
-                    ` : ''}
-                    <div class="article-actions">
-                        <button class="btn-article-action" onclick="showSummary('${articleId}', 'tldr')">
-                            📝 TL;DR
-                        </button>
-                        <button class="btn-article-action" onclick="showSummary('${articleId}', 'executive')">
-                            📊 Executive Summary
-                        </button>
-                    </div>
-                </div>`;
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeSummaryModal();
         }
+    });
 
-        function displayResults(data) {
-            const days = parseInt(document.getElementById('days').value);
-            const now = new Date();
-            const from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-            const dateOpts = { month: 'short', day: 'numeric', year: 'numeric' };
-            const fromStr = from.toLocaleDateString('en-US', dateOpts);
-            const toStr = now.toLocaleDateString('en-US', dateOpts);
-            const dateLabel = days === 1
-                ? `📅 ${toStr} (past 24 hours)`
-                : `📅 ${fromStr} – ${toStr}`;
+    // Draggable modal
+    (function() {
+        const header = document.querySelector('#summaryModal .modal-header');
+        const content = document.querySelector('#summaryModal .modal-content');
+        let isDragging = false, startX, startY, origX, origY;
 
-            document.getElementById('statsDate').innerHTML = dateLabel;
-            document.getElementById('stats').innerHTML = `
-                <div class="stat-box"><div class="number">${data.stats.total_articles}</div><div class="label">Articles</div></div>
-                <div class="stat-box"><div class="number">${data.stats.sources_checked}</div><div class="label">Sources</div></div>
-                <div class="stat-box"><div class="number">${data.top_stories.length}</div><div class="label">Top Stories</div></div>
-                <div class="stat-box"><div class="number">${data.smb_spotlight.length}</div><div class="label">SMB Relevant</div></div>
-            `;
+        header.addEventListener('mousedown', function(e) {
+            if (e.target.closest('.modal-close')) return;
+            isDragging = true;
+            const rect = content.getBoundingClientRect();
+            startX = e.clientX; startY = e.clientY;
+            origX = rect.left; origY = rect.top;
+            content.style.margin = '0';
+            content.style.position = 'fixed';
+            content.style.left = origX + 'px';
+            content.style.top = origY + 'px';
+            e.preventDefault();
+        });
 
-            document.getElementById('topStories').innerHTML = data.top_stories.map(a => renderArticleCard(a)).join('');
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            content.style.left = (origX + e.clientX - startX) + 'px';
+            content.style.top = (origY + e.clientY - startY) + 'px';
+        });
 
-            document.getElementById('smbSpotlight').innerHTML = data.smb_spotlight.length > 0
-                ? data.smb_spotlight.map(a => renderArticleCard(a)).join('')
-                : '<p style="color:#999;padding:20px;text-align:center;">No highly SMB-relevant articles found this period.</p>';
+        document.addEventListener('mouseup', function() {
+            isDragging = false;
+        });
+    })();
 
-            const topicOrder = ['Big Tech', 'Funding & Deals', 'Product News', 'Research', 'Policy & Regulation', 'SMB Focus', 'General AI News'];
-            document.getElementById('byTopic').innerHTML = topicOrder
-                .filter(t => data.by_topic[t] && data.by_topic[t].length > 0)
-                .map(t => `
-                    <div class="topic-section">
-                        <div class="topic-header">
-                            <span>${t}</span>
-                            <span class="count">${data.by_topic[t].length} articles</span>
-                        </div>
-                        ${data.by_topic[t].slice(0, 5).map(a => renderArticleCard(a)).join('')}
-                    </div>
-                `).join('');
+    // Reset modal position when closing
+    const _origClose = closeSummaryModal;
+    closeSummaryModal = function() {
+        const content = document.querySelector('#summaryModal .modal-content');
+        content.style.position = '';
+        content.style.left = '';
+        content.style.top = '';
+        content.style.margin = 'auto';
+        _origClose();
+    };
 
-            document.getElementById('allArticles').innerHTML = data.all_articles.map(a => renderArticleCard(a)).join('');
-        }
-
-        function showTab(tab, el) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            el.classList.add('active');
-            const tabMap = { top: 'topStoriesTab', smb: 'smbTab', topics: 'topicsTab', all: 'allTab' };
-            document.getElementById(tabMap[tab]).classList.add('active');
-        }
-
-        async function exportMarkdown() {
-            if (!digestData) return;
-            const response = await fetch('/api/export', {
+    async function generateSummary(article, summaryType) {
+        try {
+            const response = await fetch('/api/summarize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    top_stories: digestData.top_stories,
-                    smb_spotlight: digestData.smb_spotlight,
-                    all_articles: digestData.all_articles
+                    url: article.link,
+                    type: summaryType,
+                    title: article.title,
+                    source: article.source || '',
+                    date: article.published_display || ''
                 })
             });
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'ai_digest.md';
-            a.click();
-        }
 
-        function copyToClipboard() {
-            if (!digestData) return;
-            let text = "AI NEWS DIGEST\n\nTOP STORIES\n" + "-".repeat(40) + "\n\n";
-            digestData.top_stories.forEach((a, i) => {
-                text += `${i + 1}. ${a.title}\n   ${a.source} | ${a.published_display}\n   ${a.link}\n\n`;
+            const data = await response.json();
+
+            if (data.success && data.summary) {
+                return data.summary;
+            } else {
+                throw new Error(data.error || 'Failed to generate summary');
+            }
+        } catch (error) {
+            console.error('Claude API error, falling back to client-side generation:', error);
+            if (summaryType === 'tldr') {
+                return generateTLDR(article);
+            } else {
+                return generateExecutiveSummary(article);
+            }
+        }
+    }
+
+    function articleHeader(article) {
+        let html = `<h3 style="margin: 0 0 4px 0; font-size: 17px; color: var(--color-text); font-weight: 600;">${article.title}</h3>`;
+        html += `<p style="font-size: 12px; color: var(--color-text-tertiary); margin: 0 0 16px 0;">`;
+        html += `<span style="font-weight: 600; color: var(--color-primary);">${article.source}</span>`;
+        if (article.published_display) html += ` &middot; ${article.published_display}`;
+        html += `</p>`;
+        html += `<hr style="border: none; border-top: 1px solid var(--color-border-subtle); margin: 0 0 16px 0;">`;
+        return html;
+    }
+
+    function articleFooter(article) {
+        return `<p style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border-subtle); font-size: 13px;">
+            <a href="${article.link}" target="_blank" style="color: var(--color-primary); text-decoration: none;">Read full article →</a>
+        </p>`;
+    }
+
+    function generateTLDR(article) {
+        let html = articleHeader(article);
+        html += '<h4>Quick Summary</h4>';
+
+        if (article.key_bullets && article.key_bullets.length > 0) {
+            html += '<ul>';
+            article.key_bullets.forEach(bullet => {
+                html += `<li>${bullet}</li>`;
             });
-            navigator.clipboard.writeText(text).then(() => alert('Digest copied to clipboard!'));
+            html += '</ul>';
+        } else if (article.summary) {
+            html += `<p>${article.summary}</p>`;
         }
 
-        // --- Summary Modal Functions ---
-        // Generate a unique short hash from a string
-        function hashId(str) {
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                const ch = str.charCodeAt(i);
-                hash = ((hash << 5) - hash) + ch;
-                hash |= 0;
-            }
-            return 'a' + Math.abs(hash).toString(36);
-        }
+        html += articleFooter(article);
+        return html;
+    }
 
-        // Build a lookup map from articleId to article object
-        let articleLookup = {};
+    function generateExecutiveSummary(article) {
+        let html = articleHeader(article);
 
-        function buildArticleLookup() {
-            if (!digestData) return;
-            articleLookup = {};
-            digestData.all_articles.forEach(a => {
-                articleLookup[hashId(a.link)] = a;
+        html += '<h4>Overview</h4>';
+        if (article.key_bullets && article.key_bullets.length > 0) {
+            html += '<ul>';
+            article.key_bullets.forEach(bullet => {
+                html += `<li>${bullet}</li>`;
             });
+            html += '</ul>';
+        } else if (article.summary) {
+            html += `<p>${article.summary}</p>`;
         }
 
-        function showSummary(articleId, summaryType) {
-            const article = articleLookup[articleId];
-            if (!article) return;
-
-            const modal = document.getElementById('summaryModal');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalBody = document.getElementById('modalBody');
-
-            // Set modal title
-            modalTitle.textContent = summaryType === 'tldr' ? 'TL;DR Summary' : 'Executive Summary';
-
-            // Show loading state
-            const label = summaryType === 'tldr' ? 'TL;DR' : 'executive summary';
-            modalBody.innerHTML = `
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Generating ${label}...</p>
-                </div>
-            `;
-
-            // Show modal
-            modal.classList.add('show');
-
-            // Generate summary
-            generateSummary(article, summaryType)
-                .then(summary => {
-                    modalBody.innerHTML = `<div class="summary-content">${summary}</div>`;
-                })
-                .catch(error => {
-                    modalBody.innerHTML = `
-                        <div class="summary-content">
-                            <p style="color: #ef4444;">Error generating summary: ${error.message}</p>
-                            <p style="margin-top: 12px;">Please try again or visit the article directly: <a href="${article.link}" target="_blank">Read article</a></p>
-                        </div>
-                    `;
-                });
+        if (article.impact) {
+            html += '<h4 style="margin-top: 20px;">Impact Analysis</h4>';
+            html += `<p><strong>General Impact:</strong> ${article.impact.general_impact}</p>`;
+            html += `<p style="margin-top: 8px;"><strong>SMB Impact:</strong> ${article.impact.smb_impact}</p>`;
         }
 
-        function closeSummaryModal() {
-            const modal = document.getElementById('summaryModal');
-            modal.classList.remove('show');
+        if (article.smb_score) {
+            html += '<p style="margin-top: 12px;">';
+            html += `<strong>SMB Relevance Score:</strong> ${article.smb_score}/10 `;
+            html += `${'★'.repeat(article.smb_score)}${'☆'.repeat(10 - article.smb_score)}`;
+            html += '</p>';
         }
 
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('summaryModal');
-            if (event.target === modal) {
-                closeSummaryModal();
-            }
-        }
-
-        // Close modal on Escape key
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                closeSummaryModal();
-            }
-        });
-
-        // --- Draggable Modal ---
-        (function() {
-            const header = document.querySelector('#summaryModal .modal-header');
-            const content = document.querySelector('#summaryModal .modal-content');
-            let isDragging = false, startX, startY, origX, origY;
-
-            header.addEventListener('mousedown', function(e) {
-                if (e.target.closest('.modal-close')) return;
-                isDragging = true;
-                const rect = content.getBoundingClientRect();
-                startX = e.clientX; startY = e.clientY;
-                origX = rect.left; origY = rect.top;
-                content.style.margin = '0';
-                content.style.position = 'fixed';
-                content.style.left = origX + 'px';
-                content.style.top = origY + 'px';
-                e.preventDefault();
+        if (article.content_suggestions && article.content_suggestions.length > 0) {
+            html += '<h4 style="margin-top: 20px;">Content Ideas</h4>';
+            html += '<ul>';
+            article.content_suggestions.forEach(suggestion => {
+                html += `<li>${suggestion}</li>`;
             });
-
-            document.addEventListener('mousemove', function(e) {
-                if (!isDragging) return;
-                content.style.left = (origX + e.clientX - startX) + 'px';
-                content.style.top = (origY + e.clientY - startY) + 'px';
-            });
-
-            document.addEventListener('mouseup', function() {
-                isDragging = false;
-            });
-        })();
-
-        // Reset modal position when closing
-        const _origClose = closeSummaryModal;
-        closeSummaryModal = function() {
-            const content = document.querySelector('#summaryModal .modal-content');
-            content.style.position = '';
-            content.style.left = '';
-            content.style.top = '';
-            content.style.margin = 'auto';
-            _origClose();
-        };
-
-        async function generateSummary(article, summaryType) {
-            /**
-             * Generate a summary using Claude API.
-             * Falls back to client-side generation if API fails.
-             */
-
-            try {
-                // Call Claude API for summary generation
-                const response = await fetch('/api/summarize', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        url: article.link,
-                        type: summaryType,
-                        title: article.title,
-                        source: article.source || '',
-                        date: article.published_display || ''
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success && data.summary) {
-                    return data.summary;
-                } else {
-                    throw new Error(data.error || 'Failed to generate summary');
-                }
-            } catch (error) {
-                console.error('Claude API error, falling back to client-side generation:', error);
-                if (summaryType === 'tldr') {
-                    return generateTLDR(article);
-                } else {
-                    return generateExecutiveSummary(article);
-                }
-            }
+            html += '</ul>';
         }
 
-        function articleHeader(article) {
-            let html = `<h3 style="margin: 0 0 4px 0; font-size: 1.05rem; color: #333;">${article.title}</h3>`;
-            html += `<p style="font-size: 0.8rem; color: #888; margin: 0 0 16px 0;">`;
-            html += `<span style="font-weight: 600; color: #667eea;">${article.source}</span>`;
-            if (article.published_display) html += ` &middot; ${article.published_display}`;
-            html += `</p>`;
-            html += `<hr style="border: none; border-top: 1px solid #e9ecef; margin: 0 0 16px 0;">`;
-            return html;
-        }
+        html += articleFooter(article);
+        return html;
+    }
 
-        function articleFooter(article) {
-            return `<p style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e9ecef; font-size: 0.85rem;">
-                <a href="${article.link}" target="_blank" style="color: #667eea; text-decoration: none;">Read full article →</a>
-            </p>`;
-        }
+    document.addEventListener('DOMContentLoaded', loadFeeds);
+</script>
 
-        function generateTLDR(article) {
-            let html = articleHeader(article);
-            html += '<h4>Quick Summary</h4>';
-
-            if (article.key_bullets && article.key_bullets.length > 0) {
-                html += '<ul>';
-                article.key_bullets.forEach(bullet => {
-                    html += `<li>${bullet}</li>`;
-                });
-                html += '</ul>';
-            } else if (article.summary) {
-                html += `<p>${article.summary}</p>`;
-            }
-
-            html += articleFooter(article);
-            return html;
-        }
-
-        function generateExecutiveSummary(article) {
-            let html = articleHeader(article);
-
-            // Overview section
-            html += '<h4>Overview</h4>';
-            if (article.key_bullets && article.key_bullets.length > 0) {
-                html += '<ul>';
-                article.key_bullets.forEach(bullet => {
-                    html += `<li>${bullet}</li>`;
-                });
-                html += '</ul>';
-            } else if (article.summary) {
-                html += `<p>${article.summary}</p>`;
-            }
-
-            // Impact Analysis
-            if (article.impact) {
-                html += '<h4 style="margin-top: 20px;">Impact Analysis</h4>';
-                html += `<p><strong>General Impact:</strong> ${article.impact.general_impact}</p>`;
-                html += `<p style="margin-top: 8px;"><strong>SMB Impact:</strong> ${article.impact.smb_impact}</p>`;
-            }
-
-            // SMB Relevance Score
-            if (article.smb_score) {
-                html += '<p style="margin-top: 12px;">';
-                html += `<strong>SMB Relevance Score:</strong> ${article.smb_score}/10 `;
-                html += `${'★'.repeat(article.smb_score)}${'☆'.repeat(10 - article.smb_score)}`;
-                html += '</p>';
-            }
-
-            // Content Suggestions
-            if (article.content_suggestions && article.content_suggestions.length > 0) {
-                html += '<h4 style="margin-top: 20px;">Content Ideas</h4>';
-                html += '<ul>';
-                article.content_suggestions.forEach(suggestion => {
-                    html += `<li>${suggestion}</li>`;
-                });
-                html += '</ul>';
-            }
-
-            html += articleFooter(article);
-            return html;
-        }
-
-        document.addEventListener('DOMContentLoaded', loadFeeds);
-    </script>
 </body>
 </html>

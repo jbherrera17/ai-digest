@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Tech Stack | AI.JBHerrera</title>
+  <meta name="description" content="An interactive visual guide to the full AI technology stack — from silicon to user interface. Built for entrepreneurs who want to understand what's under the hood."/>
+
+  <!-- Theme: set before paint to avoid light-flash for dark users -->
+  <script>
+    (function(){
+      var s = localStorage.getItem('theme');
+      var d = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', s || d);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/styles/base.css"/>
+
+  <style>
+    /* Page-specific layout for /ai-stack */
+
+    .stack-wrap {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 0 var(--space-5) var(--space-12);
+    }
+
+    .flow-label {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--color-text-tertiary);
+      padding: 0 0 var(--space-2) 2px;
+      margin-top: var(--space-6);
+    }
+
+    .layer {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-2);
+      overflow: hidden;
+      transition: border-color var(--duration-fast) var(--ease-out),
+                  box-shadow var(--duration-base) var(--ease-out);
+    }
+    .layer:hover { border-color: var(--color-border); }
+    .layer.open  {
+      border-color: var(--color-border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .layer-header {
+      display: flex; align-items: stretch; gap: 0;
+      cursor: pointer; user-select: none;
+      background: transparent; border: none; width: 100%;
+      text-align: left; color: inherit; font: inherit;
+    }
+    .layer-header:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; border-radius: var(--radius-lg); }
+
+    .layer-accent {
+      width: 4px; flex-shrink: 0;
+      background: var(--ac);
+      transition: width var(--duration-fast) var(--ease-out);
+    }
+    .layer.open .layer-accent { width: 6px; }
+
+    .layer-inner {
+      display: flex; align-items: flex-start; gap: var(--space-3);
+      padding: 16px 18px;
+      flex: 1; min-width: 0;
+    }
+
+    .layer-meta { min-width: 150px; max-width: 150px; flex-shrink: 0; }
+    .layer-name {
+      font-size: 14px; font-weight: 600;
+      color: var(--color-text); line-height: 1.3;
+      letter-spacing: -0.01em;
+    }
+    .layer-sub {
+      font-size: 12px; color: var(--color-text-tertiary);
+      margin-top: 2px; font-weight: 400;
+    }
+
+    .chips {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      flex: 1; padding-top: 2px; min-width: 0;
+    }
+    .chip {
+      font-size: 11px; font-weight: 500;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      white-space: nowrap;
+      background: var(--chip-bg);
+      color: var(--chip-tx);
+    }
+
+    .layer-toggle {
+      padding: 0 18px;
+      font-size: 14px; color: var(--color-text-tertiary);
+      transition: transform var(--duration-base) var(--ease-out),
+                  color var(--duration-fast) var(--ease-out);
+      flex-shrink: 0; align-self: center;
+    }
+    .layer.open .layer-toggle { transform: rotate(180deg); color: var(--color-text-secondary); }
+
+    .layer-detail {
+      max-height: 0; overflow: hidden;
+      transition: max-height var(--duration-slow) var(--ease-out);
+    }
+    .layer.open .layer-detail { max-height: 700px; }
+
+    .layer-detail-inner {
+      padding: 0 20px 20px 26px;
+      border-top: 1px solid var(--color-border-subtle);
+    }
+    .detail-summary {
+      font-size: 14px; line-height: 1.6;
+      color: var(--color-text-secondary);
+      margin-top: 16px;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    @media (max-width: 600px) {
+      .detail-grid { grid-template-columns: 1fr; }
+      .layer-meta { min-width: 0; max-width: none; }
+      .layer-inner { flex-direction: column; gap: var(--space-3); }
+    }
+    .detail-card {
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+    }
+    .detail-card-title {
+      font-size: 12px; font-weight: 600;
+      color: var(--color-text); margin-bottom: 4px;
+      letter-spacing: -0.005em;
+    }
+    .detail-card-body {
+      font-size: 12px; line-height: 1.6;
+      color: var(--color-text-secondary);
+    }
+
+    .connector {
+      display: flex; align-items: center;
+      gap: 10px; padding: 4px 0 4px 22px;
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--color-text-tertiary);
+    }
+    .connector::before {
+      content: ''; display: block;
+      width: 1px; height: 20px;
+      background: var(--color-border);
+    }
+
+    /* Per-layer accent + chip tokens. Two sets so the chips read well in both themes. */
+    .l-ui    { --ac: #d4537e; --chip-bg: rgba(212, 83,126,0.10); --chip-tx: #b03461; }
+    .l-app   { --ac: #639922; --chip-bg: rgba( 99,153, 34,0.10); --chip-tx: #4d7619; }
+    .l-api   { --ac: #ba7517; --chip-bg: rgba(186,117, 23,0.10); --chip-tx: #8e5810; }
+    .l-inf   { --ac: #1d9e75; --chip-bg: rgba( 29,158,117,0.10); --chip-tx: #157a5a; }
+    .l-llm   { --ac: #7f77dd; --chip-bg: rgba(127,119,221,0.12); --chip-tx: #5a52b0; }
+    .l-train { --ac: #d85a30; --chip-bg: rgba(216, 90, 48,0.10); --chip-tx: #a94322; }
+    .l-store { --ac: #378add; --chip-bg: rgba( 55,138,221,0.10); --chip-tx: #1f64a8; }
+    .l-hw    { --ac: #6e6c63; --chip-bg: rgba(110,108, 99,0.10); --chip-tx: #4d4b44; }
+
+    [data-theme="dark"] .l-ui    { --chip-bg: rgba(212, 83,126,0.16); --chip-tx: #f4c0d1; }
+    [data-theme="dark"] .l-app   { --chip-bg: rgba( 99,153, 34,0.18); --chip-tx: #c0dd97; }
+    [data-theme="dark"] .l-api   { --chip-bg: rgba(186,117, 23,0.18); --chip-tx: #fac775; }
+    [data-theme="dark"] .l-inf   { --chip-bg: rgba( 29,158,117,0.18); --chip-tx: #9fe1cb; }
+    [data-theme="dark"] .l-llm   { --chip-bg: rgba(127,119,221,0.20); --chip-tx: #cecbf6; }
+    [data-theme="dark"] .l-train { --chip-bg: rgba(216, 90, 48,0.18); --chip-tx: #f5c4b3; }
+    [data-theme="dark"] .l-store { --chip-bg: rgba( 55,138,221,0.18); --chip-tx: #b5d4f4; }
+    [data-theme="dark"] .l-hw    { --chip-bg: rgba(170,168,158,0.16); --chip-tx: #d3d1c7; }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="navbar">
+  <a href="/" class="navbar-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M12 16v-4"></path>
+      <path d="M12 8h.01"></path>
+    </svg>
+    AI.JBHerrera
+  </a>
+  <div class="navbar-links">
+    <a href="/digest"   class="navbar-link">AI Digest</a>
+    <a href="/ai-stack" class="navbar-link active">AI Stack</a>
+    <a href="/skills"   class="navbar-link">Skills</a>
+    <a href="https://jbherrera.com" class="navbar-link" target="_blank" rel="noopener">Main Site</a>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<header class="hero">
+  <div class="hero-tag">Interactive Visual Guide</div>
+  <h1 class="text-display">The Full AI Tech Stack<br/>From Silicon to Screen</h1>
+  <p>Every layer that makes an AI system work — hardware, storage, training, inference, and the interfaces you actually use. Click any layer to explore what's inside.</p>
+</header>
+
+<!-- Stack -->
+<main class="stack-wrap">
+
+  <div class="flow-label">End users &amp; applications</div>
+
+  <!-- Layer 1: UI -->
+  <section class="layer l-ui" id="l-ui">
+    <button class="layer-header" type="button" aria-expanded="false" aria-controls="d-ui" onclick="toggle('l-ui', this)">
+      <span class="layer-accent"></span>
+      <span class="layer-inner">
+        <span class="layer-meta">
+          <span class="layer-name">User interfaces</span>
+          <span class="layer-sub">How people interact</span>
+        </span>
+        <span class="chips">
+          <span class="chip">Web chat (Claude.ai)</span>
+          <span class="chip">Mobile apps</span>
+          <span class="chip">Voice assistants</span>
+          <span class="chip">IDE plugins (Cursor)</span>
+          <span class="chip">Browser extensions</span>
+          <span class="chip">Enterprise dashboards</span>
+          <span class="chip">Direct API consumers</span>
+        </span>
+      </span>
+      <span class="layer-toggle">⌄</span>
+    </button>
+    <div class="layer-detail" id="d-ui">
+      <div class="layer-detail-inner">
+        <p class="detail-summary">The front door to AI. Every interface you see is essentially a wrapper around an API call — sending your prompt and displaying the response. The variety is wide, but the underlying mechanic is the same.</p>
+        <div class="detail-grid">
+          <div class="detail-card">
+            <div class="detail-card-title">Web &amp; mobile chat</div>
+            <div class="detail-card-body">Claude.ai, ChatGPT, Gemini — clean interfaces that handle conversation history, file uploads, and streaming responses token by token.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">IDE plugins</div>
+            <div class="detail-card-body">Tools like Cursor or GitHub Copilot embed AI directly in your code editor. They pass your file context automatically with every prompt.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Voice assistants</div>
+            <div class="detail-card-body">Siri, Alexa, and now AI-native assistants add a speech-to-text layer before the prompt, and text-to-speech on the way back out.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Direct API consumers</div>
+            <div class="detail-card-body">Developers and platforms call the API directly — your own app, Zapier automations, custom agents — no visual interface at all.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="connector">HTTP requests</div>
+
+  <!-- Layer 2: App Ecosystem -->
+  <section class="layer l-app" id="l-app">
+    <button class="layer-header" type="button" aria-expanded="false" aria-controls="d-app" onclick="toggle('l-app', this)">
+      <span class="layer-accent"></span>
+      <span class="layer-inner">
+        <span class="layer-meta">
+          <span class="layer-name">App ecosystem</span>
+          <span class="layer-sub">Logic &amp; orchestration</span>
+        </span>
+        <span class="chips">
+          <span class="chip">RAG pipelines</span>
+          <span class="chip">Agentic workflows</span>
+          <span class="chip">LangChain / LlamaIndex</span>
+          <span class="chip">System prompts</span>
+          <span class="chip">MCP servers</span>
+          <span class="chip">Tool / function calls</span>
+          <span class="chip">Memory &amp; context</span>
+        </span>
+      </span>
+      <span class="layer-toggle">⌄</span>
+    </button>
+    <div class="layer-detail" id="d-app">
+      <div class="layer-detail-inner">
+        <p class="detail-summary">This is where AI application design lives — and where Synergi AI operates. The raw model is powerful but generic. Application logic shapes it into a specific, valuable tool for a specific audience.</p>
+        <div class="detail-grid">
+          <div class="detail-card">
+            <div class="detail-card-title">RAG (Retrieval-Augmented Generation)</div>
+            <div class="detail-card-body">Before sending a prompt, search a knowledge base for relevant documents and inject them into context. This lets the model answer questions about your private data without retraining.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Agentic workflows</div>
+            <div class="detail-card-body">Multi-step AI that can take actions — search the web, run code, send emails, call APIs — not just generate text. The model reasons about what to do next.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">System prompts</div>
+            <div class="detail-card-body">Hidden instructions given to the model before every conversation. This is how you define persona, rules, tone, and constraints. The model always follows these first.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">MCP (Model Context Protocol)</div>
+            <div class="detail-card-body">Anthropic's open standard for connecting AI to external tools — databases, calendars, CRMs. Enables richer, more capable agent systems without custom glue code.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="connector">Prompts &amp; completions</div>
+
+  <!-- Layer 3: API & Serving -->
+  <section class="layer l-api" id="l-api">
+    <button class="layer-header" type="button" aria-expanded="false" aria-controls="d-api" onclick="toggle('l-api', this)">
+      <span class="layer-accent"></span>
+      <span class="layer-inner">
+        <span class="layer-meta">
+          <span class="layer-name">API &amp; serving</span>
+          <span class="layer-sub">Gateway &amp; delivery</span>
+        </span>
+        <span class="chips">
+          <span class="chip">REST / streaming API</span>
+          <span class="chip">Python &amp; JS SDKs</span>
+          <span class="chip">Auth &amp; rate limiting</span>
+          <span class="chip">Load balancing</span>
+          <span class="chip">Token streaming</span>
+          <span class="chip">Safety filters</span>
+        </span>
+      </span>
+      <span class="layer-toggle">⌄</span>
+    </button>
+    <div class="layer-detail" id="d-api">
+      <div class="layer-detail-inner">
+        <p class="detail-summary">The API is the public face of the AI system — a clean HTTP interface that hides the enormous complexity of what happens beneath. It handles authentication, routing, and streaming your response back word by word.</p>
+        <div class="detail-grid">
+          <div class="detail-card">
+            <div class="detail-card-title">Streaming responses</div>
+            <div class="detail-card-body">Rather than waiting for the full response before sending anything, the API streams tokens as they're generated. This is why you see text appearing word by word — not all at once.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Safety filters</div>
+            <div class="detail-card-body">Inputs and outputs pass through classifiers and rule systems before reaching the model or the user. These enforce content policies independently of the model's own training.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">SDKs</div>
+            <div class="detail-card-body">Libraries for Python, JavaScript, and other languages that wrap the raw HTTP API — handling authentication, retries, streaming, and error handling so developers don't have to.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Rate limiting</div>
+            <div class="detail-card-body">Measured in tokens per minute and requests per minute. Controls access fairness across millions of users and protects the infrastructure from overload.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="connector">Inference requests</div>
+
+  <!-- Layer 4: Inference Engine -->
+  <section class="layer l-inf" id="l-inf">
+    <button class="layer-header" type="button" aria-expanded="false" aria-controls="d-inf" onclick="toggle('l-inf', this)">
+      <span class="layer-accent"></span>
+      <span class="layer-inner">
+        <span class="layer-meta">
+          <span class="layer-name">Inference engine</span>
+          <span class="layer-sub">Runtime execution</span>
+        </span>
+        <span class="chips">
+          <span class="chip">KV cache</span>
+          <span class="chip">Quantization (INT8/FP16)</span>
+          <span class="chip">Request batching</span>
+          <span class="chip">VRAM management</span>
+          <span class="chip">Token sampling</span>
+          <span class="chip">vLLM / TensorRT</span>
+        </span>
+      </span>
+      <span class="layer-toggle">⌄</span>
+    </button>
+    <div class="layer-detail" id="d-inf">
+      <div class="layer-detail-inner">
+        <p class="detail-summary">The inference engine is what runs the model in real time — loading billions of parameters into GPU memory and executing the forward pass for each token generated. It's heavily optimized for speed and cost.</p>
+        <div class="detail-grid">
+          <div class="detail-card">
+            <div class="detail-card-title">KV cache</div>
+            <div class="detail-card-body">Key-Value cache stores the intermediate results of processing the prompt so they don't have to be recomputed for each new token. Critical for long-context performance.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Quantization</div>
+            <div class="detail-card-body">Weights stored in lower precision (INT8 vs FP32) use 4× less memory with minimal quality loss. Enables larger models to fit in available VRAM.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Token sampling</div>
+            <div class="detail-card-body">After the model scores all possible next tokens, a sampling strategy picks one. Temperature, top-p, and top-k control the randomness/creativity of the output.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Request batching</div>
+            <div class="detail-card-body">Multiple user requests are grouped together and processed simultaneously on the GPU — dramatically increasing throughput and reducing cost per token.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="connector">Model weights loaded into GPU memory</div>
+
+  <!-- Layer 5: LLM Core -->
+  <section class="layer l-llm" id="l-llm">
+    <button class="layer-header" type="button" aria-expanded="false" aria-controls="d-llm" onclick="toggle('l-llm', this)">
+      <span class="layer-accent"></span>
+      <span class="layer-inner">
+        <span class="layer-meta">
+          <span class="layer-name">LLM / model core</span>
+          <span class="layer-sub">The neural network</span>
+        </span>
+        <span class="chips">
+          <span class="chip">Tokenizer (BPE)</span>
+          <span class="chip">Embedding layer</span>
+          <span class="chip">Transformer blocks (N×)</span>
+          <span class="chip">Multi-head attention</span>
+          <span class="chip">Feed-forward network</span>
+          <span class="chip">Billions of parameters</span>
+          <span class="chip">Output softmax</span>
+        </span>
+      </span>
+      <span class="layer-toggle">⌄</span>
+    </button>
+    <div class="layer-detail" id="d-llm">
+      <div class="layer-detail-inner">
+        <p class="detail-summary">The model itself — a deep neural network with billions of learned parameters, organized into stacked transformer blocks. Everything it knows is encoded in those weights. At inference time, weights are frozen; the model only predicts.</p>
+        <div class="detail-grid">
+          <div class="detail-card">
+            <div class="detail-card-title">Tokenizer (BPE)</div>
+            <div class="detail-card-body">Text is broken into subword pieces before entering the model. "Unbelievable" becomes three tokens. A vocabulary of ~50K–100K pieces covers virtually any language or code.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Transformer blocks</div>
+            <div class="detail-card-body">The core repeating unit. Each block runs self-attention (every token looks at every other token) followed by a feed-forward network. Models stack dozens to hundreds of these.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Multi-head attention</div>
+            <div class="detail-card-body">The mechanism that lets tokens relate to each other across the full context window. Multiple "heads" run in parallel, each learning different relationship patterns.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Output softmax</div>
+            <div class="detail-card-body">The final layer converts raw scores into a probability distribution over all vocabulary tokens. The highest-probability token (adjusted for temperature) becomes the next word.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="connector">Trained weights (result of pre-training)</div>
+
+  <!-- Layer 6: Pre-training -->
+  <section class="layer l-train" id="l-train">
+    <button class="layer-header" type="button" aria-expanded="false" aria-controls="d-train" onclick="toggle('l-train', this)">
+      <span class="layer-accent"></span>
+      <span class="layer-inner">
+        <span class="layer-meta">
+          <span class="layer-name">Pre-training</span>
+          <span class="layer-sub">How the model learned</span>
+        </span>
+        <span class="chips">
+          <span class="chip">Web-scale text corpus</span>
+          <span class="chip">Tokenization</span>
+          <span class="chip">Forward pass</span>
+          <span class="chip">Backpropagation</span>
+          <span class="chip">Gradient descent</span>
+          <span class="chip">RLHF fine-tuning</span>
+          <span class="chip">Constitutional AI</span>
+        </span>
+      </span>
+      <span class="layer-toggle">⌄</span>
+    </button>
+    <div class="layer-detail" id="d-train">
+      <div class="layer-detail-inner">
+        <p class="detail-summary">Training happens in two phases: pre-training (learning language from trillions of tokens over months of GPU compute) and alignment fine-tuning (teaching the model to be helpful and safe). By the time you use a model, this phase is long finished.</p>
+        <div class="detail-grid">
+          <div class="detail-card">
+            <div class="detail-card-title">Pre-training</div>
+            <div class="detail-card-body">The model reads trillions of tokens from the web, books, and code. For each token, it predicts the next one, measures its error (loss), and adjusts weights via backpropagation. Repeated billions of times.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">RLHF</div>
+            <div class="detail-card-body">Reinforcement Learning from Human Feedback. Human raters rank model outputs → a reward model learns those preferences → the LLM is fine-tuned to score higher on the reward model.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Constitutional AI</div>
+            <div class="detail-card-body">Anthropic's method: the model critiques its own outputs against a set of principles and revises them. Trains on the improved versions — less human labeling, more systematic value alignment.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Cost reality</div>
+            <div class="detail-card-body">Pre-training frontier models costs $50M–$500M+ in compute. This is why only a handful of organizations can do it — but application design on top of these models is accessible to everyone.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="connector">Training data</div>
+
+  <!-- Layer 7: Storage & Data -->
+  <section class="layer l-store" id="l-store">
+    <button class="layer-header" type="button" aria-expanded="false" aria-controls="d-store" onclick="toggle('l-store', this)">
+      <span class="layer-accent"></span>
+      <span class="layer-inner">
+        <span class="layer-meta">
+          <span class="layer-name">Storage &amp; data</span>
+          <span class="layer-sub">Where knowledge lives</span>
+        </span>
+        <span class="chips">
+          <span class="chip">Object storage (S3/GCS)</span>
+          <span class="chip">Vector databases</span>
+          <span class="chip">SQL / NoSQL DBs</span>
+          <span class="chip">Data lakes</span>
+          <span class="chip">Training corpus</span>
+          <span class="chip">Model weight checkpoints</span>
+        </span>
+      </span>
+      <span class="layer-toggle">⌄</span>
+    </button>
+    <div class="layer-detail" id="d-store">
+      <div class="layer-detail-inner">
+        <p class="detail-summary">Three distinct storage needs: the raw training data (petabytes of text), the trained model weights (hundreds of gigabytes per checkpoint), and runtime data (vector embeddings, user sessions, application state).</p>
+        <div class="detail-grid">
+          <div class="detail-card">
+            <div class="detail-card-title">Object storage (S3/GCS)</div>
+            <div class="detail-card-body">Cloud blob storage for training datasets and model weight checkpoints. Cheap, infinitely scalable, and the backbone of every major AI lab's data infrastructure.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Vector databases</div>
+            <div class="detail-card-body">Pinecone, Weaviate, Qdrant — specialized databases that store embeddings and enable semantic search. The data layer that powers RAG: find documents by meaning, not keyword.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Model weight checkpoints</div>
+            <div class="detail-card-body">Snapshots of model weights saved during training. A single checkpoint for a large model can be 300GB–1TB. Labs maintain many checkpoints to roll back if training goes wrong.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Application databases</div>
+            <div class="detail-card-body">SQL (Postgres, MySQL) and NoSQL (MongoDB, Supabase) for user data, conversation history, application state, and anything else your AI application needs to remember.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="connector">Raw compute power</div>
+
+  <!-- Layer 8: Hardware -->
+  <section class="layer l-hw" id="l-hw">
+    <button class="layer-header" type="button" aria-expanded="false" aria-controls="d-hw" onclick="toggle('l-hw', this)">
+      <span class="layer-accent"></span>
+      <span class="layer-inner">
+        <span class="layer-meta">
+          <span class="layer-name">Hardware / silicon</span>
+          <span class="layer-sub">The physical foundation</span>
+        </span>
+        <span class="chips">
+          <span class="chip">NVIDIA H100 GPU clusters</span>
+          <span class="chip">Google TPU pods</span>
+          <span class="chip">Custom ASICs (Trainium)</span>
+          <span class="chip">InfiniBand / NVLink</span>
+          <span class="chip">Data center design</span>
+          <span class="chip">Liquid cooling</span>
+          <span class="chip">Power infrastructure</span>
+        </span>
+      </span>
+      <span class="layer-toggle">⌄</span>
+    </button>
+    <div class="layer-detail" id="d-hw">
+      <div class="layer-detail-inner">
+        <p class="detail-summary">The physical layer everything runs on. AI training and inference are fundamentally matrix multiplication problems — GPUs excel at this because they have thousands of parallel cores designed for exactly that math.</p>
+        <div class="detail-grid">
+          <div class="detail-card">
+            <div class="detail-card-title">NVIDIA H100 GPUs</div>
+            <div class="detail-card-body">The current standard for AI training. Each H100 has 80GB of HBM3 memory and ~3,000 teraflops of tensor performance. Training clusters link thousands of them together.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Google TPUs</div>
+            <div class="detail-card-body">Custom chips designed specifically for tensor operations. Google trains Gemini on its own TPU pods — gives them control over the full stack from silicon to model.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">High-speed interconnects</div>
+            <div class="detail-card-body">NVLink (GPU-to-GPU on one server) and InfiniBand (server-to-server) allow the cluster to act as one giant computer. Bandwidth between GPUs is as important as GPU speed itself.</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Power &amp; cooling</div>
+            <div class="detail-card-body">A single H100 draws ~700W. A training cluster of 10,000 GPUs needs ~7 megawatts — roughly the power of a small town. Liquid cooling is now standard at this scale.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  © 2026 <a href="https://jbherrera.com">JBHerrera.com</a> &nbsp;·&nbsp; AI tools for the independent professional &nbsp;·&nbsp; Built with <a href="https://synergiai.io">Synergi AI</a>
+</footer>
+
+<script>
+  function toggle(id, btn) {
+    var el = document.getElementById(id);
+    var isOpen = el.classList.contains('open');
+    document.querySelectorAll('.layer.open').forEach(function(l){
+      l.classList.remove('open');
+      var b = l.querySelector('.layer-header');
+      if (b) b.setAttribute('aria-expanded', 'false');
+    });
+    if (!isOpen) {
+      el.classList.add('open');
+      btn.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  });
+</script>
+
+</body>
+</html>

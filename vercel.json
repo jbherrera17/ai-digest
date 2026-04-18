@@ -9,9 +9,13 @@
     { "source": "/api/admin/icps/:path*", "destination": "/api/admin/icps" },
     { "source": "/api/admin/categories/:path*", "destination": "/api/admin/categories" },
     { "source": "/api/admin/discover/:path*", "destination": "/api/admin/discover" },
+    { "source": "/api/admin/skills/:path*", "destination": "/api/admin/skills" },
+    { "source": "/api/skills/:path*", "destination": "/api/skills" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/digest", "destination": "/digest.html" },
     { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/skills", "destination": "/skills.html" },
+    { "source": "/ai-stack", "destination": "/ai-stack.html" },
     { "source": "/", "destination": "/index.html" }
   ]
 }

@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skills Registry | AI.JBHerrera</title>
+
+    <script>
+      (function(){
+        var s = localStorage.getItem('theme');
+        var d = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', s || d);
+      })();
+    </script>
+
+    <link rel="stylesheet" href="/styles/base.css"/>
+
+    <style>
+        /* Page-specific layout for /skills */
+
+        body { background: var(--color-bg-secondary); }
+
+        /* App shell */
+        .app { display: flex; min-height: 100vh; }
+        .skills-sidebar {
+            width: 240px;
+            background: var(--color-bg);
+            color: var(--color-text);
+            padding: 1.5rem 1rem;
+            position: fixed; top: var(--nav-height);
+            height: calc(100vh - var(--nav-height));
+            overflow-y: auto;
+            display: flex; flex-direction: column;
+            border-right: 1px solid var(--color-border-subtle);
+        }
+        .skills-sidebar h1 {
+            font-size: 18px; font-weight: 600;
+            margin-bottom: 4px; padding: 0 0.75rem;
+            letter-spacing: -0.01em;
+        }
+        .skills-sidebar .subtitle {
+            font-size: 12px; color: var(--color-text-tertiary);
+            margin-bottom: 1.5rem; padding: 0 0.75rem;
+        }
+        .sidebar-nav { flex: 1; }
+        .nav-item {
+            display: flex; align-items: center;
+            padding: 0.6rem 0.75rem;
+            border-radius: var(--radius-md);
+            color: var(--color-text-secondary); cursor: pointer;
+            margin-bottom: 0.15rem;
+            font-size: 14px; font-weight: 500;
+            transition: background var(--duration-fast), color var(--duration-fast);
+        }
+        .nav-item:hover { background: var(--color-bg-secondary); color: var(--color-text); }
+        .nav-item.active {
+            background: var(--color-primary-soft); color: var(--color-primary);
+        }
+        .nav-item svg { width: 18px; height: 18px; margin-right: 0.65rem; flex-shrink: 0; }
+        .sidebar-footer { padding-top: 1rem; border-top: 1px solid var(--color-border-subtle); }
+
+        .main { flex: 1; margin-left: 240px; padding: 2rem; }
+
+        /* Page header */
+        .page-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .page-header h2 {
+            font-size: 24px; font-weight: 600;
+            letter-spacing: -0.015em;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 1rem;
+        }
+        .card-header h3 {
+            font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+        }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem; margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 1.1rem 1.25rem;
+        }
+        .stat-card .label { font-size: 13px; color: var(--color-text-secondary); font-weight: 500; }
+        .stat-card .value {
+            font-size: 28px; font-weight: 700;
+            margin-top: 0.25rem; letter-spacing: -0.02em;
+            color: var(--color-text);
+        }
+        .stat-card .value.primary { color: var(--color-primary); }
+        .stat-card .value.success { color: var(--color-success); }
+        .stat-card .value.warning { color: var(--color-warning); }
+        .stat-card .value.danger  { color: var(--color-danger); }
+
+        /* Tables */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th {
+            text-align: left; padding: 0.6rem 0.75rem;
+            color: var(--color-text-tertiary);
+            font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+            border-bottom: 1px solid var(--color-border);
+        }
+        td { padding: 0.7rem 0.75rem; border-bottom: 1px solid var(--color-border-subtle); color: var(--color-text); }
+        tr:hover td { background: var(--color-bg-secondary); }
+
+        /* Page-scoped badges (keeping existing class names — colors retuned for theme) */
+        .badge {
+            display: inline-block; padding: 2px 8px;
+            border-radius: var(--radius-full);
+            font-size: 11px; font-weight: 600; line-height: 1.4;
+        }
+        .badge-primary { background: var(--color-primary-soft); color: var(--color-primary); }
+        .badge-success { background: rgba(52,199,89,0.14);  color: #1f8a3d; }
+        [data-theme="dark"] .badge-success { color: #6ee49a; }
+        .badge-warning { background: rgba(255,149,0,0.14);  color: #b86b00; }
+        [data-theme="dark"] .badge-warning { color: #ffb24d; }
+        .badge-danger  { background: rgba(255,59,48,0.14);  color: #b91c1c; }
+        [data-theme="dark"] .badge-danger  { color: #ff8a80; }
+        .badge-gray    { background: var(--color-bg-secondary); color: var(--color-text-secondary); }
+
+        /* Department colors */
+        .dept-pm    { background: rgba(127,119,221,0.14); color: #5b21b6; }
+        [data-theme="dark"] .dept-pm    { color: #cecbf6; }
+        .dept-biz   { background: rgba(0,122,255,0.14);   color: #1e40af; }
+        [data-theme="dark"] .dept-biz   { color: #93c5fd; }
+        .dept-mkt   { background: rgba(212,83,126,0.14);  color: #9d174d; }
+        [data-theme="dark"] .dept-mkt   { color: #f4c0d1; }
+        .dept-sales { background: rgba(52,199,89,0.14);   color: #065f46; }
+        [data-theme="dark"] .dept-sales { color: #6ee49a; }
+        .dept-ops   { background: rgba(255,149,0,0.14);   color: #92400e; }
+        [data-theme="dark"] .dept-ops   { color: #ffb24d; }
+        .dept-fin   { background: rgba(102,126,234,0.14); color: #3730a3; }
+        [data-theme="dark"] .dept-fin   { color: #a5b4fc; }
+        .dept-exec  { background: rgba(175,82,222,0.14);  color: #6b21a8; }
+        [data-theme="dark"] .dept-exec  { color: #d8b4fe; }
+        .dept-sup   { background: rgba(20,184,166,0.14);  color: #134e4a; }
+        [data-theme="dark"] .dept-sup   { color: #5eead4; }
+
+        /* Filter bar */
+        .filter-bar {
+            display: flex; gap: 0.6rem; margin-bottom: 1.25rem;
+            flex-wrap: wrap; align-items: center;
+        }
+        .filter-bar input, .filter-bar select {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            background: var(--color-surface); color: var(--color-text);
+            font-family: inherit;
+        }
+        .filter-bar input { flex: 1; min-width: 200px; }
+        .filter-bar input:focus, .filter-bar select:focus {
+            outline: none; border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px var(--color-primary-soft);
+        }
+
+        /* Status tabs */
+        .status-tabs { display: flex; gap: 0.4rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+        .status-tab {
+            padding: 0.4rem 0.85rem;
+            border-radius: var(--radius-full);
+            border: 1px solid var(--color-border);
+            background: var(--color-surface);
+            color: var(--color-text-secondary);
+            cursor: pointer; font-size: 13px; font-weight: 500;
+            transition: border-color var(--duration-fast), color var(--duration-fast), background var(--duration-fast);
+        }
+        .status-tab:hover { border-color: var(--color-primary); color: var(--color-primary); }
+        .status-tab.active {
+            background: var(--color-primary); color: white; border-color: var(--color-primary);
+        }
+        .status-tab .count {
+            display: inline-block; background: rgba(255,255,255,0.18);
+            padding: 1px 6px; border-radius: var(--radius-full);
+            font-size: 10px; margin-left: 0.3rem;
+        }
+        .status-tab:not(.active) .count {
+            background: var(--color-bg-secondary); color: var(--color-text-tertiary);
+        }
+
+        /* Match cards */
+        .match-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem; margin-bottom: 0.85rem;
+            border-left: 4px solid var(--color-border);
+        }
+        .match-card.status-approved { border-left-color: var(--color-success); }
+        .match-card.status-rejected { border-left-color: var(--color-danger); }
+        .match-card.status-override { border-left-color: var(--color-warning); }
+        .match-card.status-pending  { border-left-color: var(--color-primary); }
+
+        .match-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1.25rem; align-items: start; }
+        .match-arrow { color: var(--color-text-tertiary); font-size: 22px; padding-top: 0.85rem; }
+        .match-skill h4 { font-size: 15px; margin-bottom: 0.25rem; font-weight: 600; }
+        .match-skill p  { font-size: 12px; color: var(--color-text-secondary); line-height: 1.5; }
+        .match-meta     { font-size: 11px; color: var(--color-text-tertiary); margin-top: 0.5rem; }
+        .match-actions  {
+            display: flex; gap: 0.5rem; margin-top: 1rem; padding-top: 1rem;
+            border-top: 1px solid var(--color-border-subtle);
+        }
+
+        .confidence-bar {
+            width: 100%; height: 6px;
+            background: var(--color-border-subtle);
+            border-radius: var(--radius-full);
+            margin-top: 0.5rem; overflow: hidden;
+        }
+        .confidence-fill { height: 100%; border-radius: var(--radius-full); transition: width 0.3s; }
+
+        /* Suggestion cards */
+        .suggestion-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
+        .suggestion-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 1.1rem;
+        }
+        .suggestion-card h4 { font-size: 15px; margin-bottom: 0.4rem; font-weight: 600; }
+        .suggestion-card p {
+            font-size: 12px; color: var(--color-text-secondary);
+            margin-bottom: 0.75rem; line-height: 1.5;
+        }
+        .suggestion-card .meta { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+
+        /* Keywords */
+        .keyword {
+            display: inline-block; padding: 1px 6px;
+            background: var(--color-bg-secondary);
+            border-radius: var(--radius-sm);
+            font-size: 10px; color: var(--color-text-secondary); margin: 1px;
+        }
+
+        /* Form (inside modal) */
+        .form-group { margin-bottom: 0.85rem; }
+        .form-group label {
+            display: block; font-size: 13px; font-weight: 500;
+            color: var(--color-text-secondary); margin-bottom: 4px;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%; padding: 0.55rem 0.75rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            font-size: 14px; font-family: inherit;
+            background: var(--color-surface); color: var(--color-text);
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none; border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px var(--color-primary-soft);
+        }
+        .form-group textarea { min-height: 80px; resize: vertical; }
+        .modal-actions { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 1.25rem; }
+        .modal h3 { font-size: 18px; margin-bottom: 1rem; font-weight: 600; }
+
+        /* Auth screen */
+        .auth-screen {
+            display: flex; justify-content: center; align-items: center;
+            min-height: calc(100vh - var(--nav-height));
+        }
+        .auth-box {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border-subtle);
+            padding: 2rem; border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            width: 360px; text-align: center;
+        }
+        .auth-box h2 { margin-bottom: 0.4rem; font-size: 22px; font-weight: 600; }
+        .auth-box p  { color: var(--color-text-secondary); font-size: 14px; margin-bottom: 1.25rem; }
+        .auth-box input {
+            width: 100%; padding: 0.7rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem; font-size: 14px;
+            background: var(--color-surface); color: var(--color-text);
+            font-family: inherit;
+        }
+
+        /* Sections */
+        .section { display: none; }
+        .section.active { display: block; }
+
+        /* File drop zone */
+        .drop-zone {
+            border: 2px dashed var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 2rem; text-align: center;
+            color: var(--color-text-tertiary);
+            cursor: pointer;
+            transition: border-color var(--duration-fast), background var(--duration-fast);
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--color-primary);
+            background: var(--color-primary-soft);
+        }
+
+        .version { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-tertiary); }
+        .truncate { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        @media (max-width: 768px) {
+            .skills-sidebar { display: none; }
+            .main { margin-left: 0; padding: 1.25rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="navbar">
+  <a href="/" class="navbar-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M12 16v-4"></path>
+      <path d="M12 8h.01"></path>
+    </svg>
+    AI.JBHerrera
+  </a>
+  <div class="navbar-links">
+    <a href="/digest"   class="navbar-link">AI Digest</a>
+    <a href="/ai-stack" class="navbar-link">AI Stack</a>
+    <a href="/skills"   class="navbar-link active">Skills</a>
+    <a href="/admin"    class="navbar-link">Admin</a>
+    <a href="https://jbherrera.com" class="navbar-link" target="_blank" rel="noopener">Main Site</a>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- Auth Screen -->
+<div id="authScreen" class="auth-screen">
+    <div class="auth-box">
+        <h2>Skills Registry</h2>
+        <p>Enter admin token to manage skills</p>
+        <input type="password" id="tokenInput" placeholder="Admin token..." onkeydown="if(event.key==='Enter')authenticate()">
+        <button class="btn btn-primary" style="width:100%" onclick="authenticate()">Sign In</button>
+        <p style="margin-top:1rem;font-size:12px;color:var(--color-text-tertiary)">
+            <a href="#" onclick="skipAuth()" style="color:var(--color-primary)">Browse read-only</a>
+        </p>
+    </div>
+</div>
+
+<!-- Main App -->
+<div id="mainApp" class="app" style="display:none">
+    <!-- Sidebar -->
+    <aside class="skills-sidebar">
+        <h1>Skills Registry</h1>
+        <p class="subtitle">Review &amp; Manage Skills</p>
+        <div class="sidebar-nav">
+            <div class="nav-item active" data-section="dashboard" onclick="showSection('dashboard')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                Dashboard
+            </div>
+            <div class="nav-item" data-section="skills" onclick="showSection('skills')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                Skills Browser
+            </div>
+            <div class="nav-item" data-section="matches" onclick="showSection('matches')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/></svg>
+                Match Review
+            </div>
+            <div class="nav-item" data-section="suggestions" onclick="showSection('suggestions')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>
+                Suggestions
+            </div>
+            <div class="nav-item" data-section="sources" onclick="showSection('sources')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                Sources
+            </div>
+        </div>
+        <div class="sidebar-footer">
+            <button class="btn btn-outline btn-sm" style="width:100%" onclick="openSyncModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                Sync Registry
+            </button>
+        </div>
+    </aside>
+
+    <main class="main">
+        <!-- Dashboard -->
+        <div id="section-dashboard" class="section active">
+            <div class="page-header"><h2>Dashboard</h2></div>
+            <div class="stats-grid" id="statsGrid"></div>
+            <div class="card">
+                <div class="card-header"><h3>Quick Actions</h3></div>
+                <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
+                    <button class="btn btn-primary btn-sm" onclick="showSection('matches')">Review Matches</button>
+                    <button class="btn btn-outline btn-sm" onclick="showSection('suggestions')">Browse Suggestions</button>
+                    <button class="btn btn-outline btn-sm" onclick="showSection('skills')">View All Skills</button>
+                    <button class="btn btn-outline btn-sm" onclick="openSyncModal()">Sync Registry</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skills Browser -->
+        <div id="section-skills" class="section">
+            <div class="page-header">
+                <h2>Skills Browser</h2>
+                <span id="skillsCount" style="color:var(--color-text-tertiary);font-size:13px"></span>
+            </div>
+            <div class="filter-bar">
+                <input type="text" id="skillSearch" placeholder="Search skills..." oninput="filterSkills()">
+                <select id="filterDept" onchange="filterSkills()">
+                    <option value="">All Departments</option>
+                    <option value="biz">Business</option>
+                    <option value="exec">Executive</option>
+                    <option value="fin">Finance</option>
+                    <option value="mkt">Marketing</option>
+                    <option value="pm">Product</option>
+                    <option value="ops">Operations</option>
+                    <option value="sales">Sales</option>
+                    <option value="sup">Support</option>
+                </select>
+                <select id="filterType" onchange="filterSkills()">
+                    <option value="">All Types</option>
+                    <option value="core">Core</option>
+                    <option value="expert">Expert</option>
+                </select>
+            </div>
+            <div class="card">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Dept</th>
+                                <th>Source</th>
+                                <th>Version</th>
+                                <th>Keywords</th>
+                            </tr>
+                        </thead>
+                        <tbody id="skillsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Match Review -->
+        <div id="section-matches" class="section">
+            <div class="page-header">
+                <h2>Match Review</h2>
+                <span id="matchesCount" style="color:var(--color-text-tertiary);font-size:13px"></span>
+            </div>
+            <div class="status-tabs" id="matchTabs"></div>
+            <div id="matchesList"></div>
+        </div>
+
+        <!-- Suggestions -->
+        <div id="section-suggestions" class="section">
+            <div class="page-header">
+                <h2>New Skill Suggestions</h2>
+                <span id="suggestionsCount" style="color:var(--color-text-tertiary);font-size:13px"></span>
+            </div>
+            <p style="color:var(--color-text-secondary);font-size:14px;margin-bottom:1.25rem">
+                Expert skills with no matching core skill. Review and adopt into your core skills library.
+            </p>
+            <div class="suggestion-grid" id="suggestionsGrid"></div>
+        </div>
+
+        <!-- Sources -->
+        <div id="section-sources" class="section">
+            <div class="page-header"><h2>Skill Sources</h2></div>
+            <div id="sourcesList"></div>
+        </div>
+    </main>
+</div>
+
+<!-- Sync Modal -->
+<div id="syncModal" class="modal-overlay" onclick="if(event.target===this)closeSyncModal()">
+    <div class="modal">
+        <h3>Sync Registry</h3>
+        <p style="color:var(--color-text-secondary);font-size:14px;margin-bottom:1rem">
+            Upload the <code>skills-registry.json</code> generated by the skills updater.
+        </p>
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()"
+             ondragover="event.preventDefault();this.classList.add('dragover')"
+             ondragleave="this.classList.remove('dragover')"
+             ondrop="handleDrop(event)">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom:0.5rem">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <p>Drop skills-registry.json here or click to browse</p>
+            <input type="file" id="fileInput" accept=".json" style="display:none" onchange="handleFileSelect(event)">
+        </div>
+        <div id="syncStatus" style="display:none;margin-top:1rem"></div>
+        <div class="modal-actions">
+            <button class="btn btn-outline btn-sm" onclick="closeSyncModal()">Cancel</button>
+            <button class="btn btn-primary btn-sm" id="syncBtn" onclick="performSync()" disabled>Sync</button>
+        </div>
+    </div>
+</div>
+
+<!-- Adopt Modal -->
+<div id="adoptModal" class="modal-overlay" onclick="if(event.target===this)closeAdoptModal()">
+    <div class="modal">
+        <h3>Adopt Skill</h3>
+        <div class="form-group">
+            <label>Skill</label>
+            <input type="text" id="adoptSkillName" readonly>
+            <input type="hidden" id="adoptSkillId">
+        </div>
+        <div class="form-group">
+            <label>Version</label>
+            <input type="text" id="adoptVersion" readonly>
+        </div>
+        <div class="form-group">
+            <label>Notes</label>
+            <textarea id="adoptNotes" placeholder="Why are you adopting this skill?"></textarea>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-outline btn-sm" onclick="closeAdoptModal()">Cancel</button>
+            <button class="btn btn-success btn-sm" onclick="confirmAdopt()">Adopt Skill</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script>
+    document.getElementById('themeToggle').addEventListener('click', function(){
+      var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+    });
+
+    // State
+    let authToken = localStorage.getItem('skills_admin_token') || '';
+    let isReadOnly = false;
+    let skills = [];
+    let matches = [];
+    let suggestions = [];
+    let sources = [];
+    let stats = {};
+    let registryJson = null;
+    let currentMatchFilter = '';
+
+    function authenticate() {
+        authToken = document.getElementById('tokenInput').value;
+        localStorage.setItem('skills_admin_token', authToken);
+        isReadOnly = false;
+        showApp();
+    }
+
+    function skipAuth() {
+        isReadOnly = true;
+        showApp();
+    }
+
+    function showApp() {
+        document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'flex';
+        loadDashboard();
+    }
+
+    if (authToken) showApp();
+
+    async function apiPublic(endpoint) {
+        const response = await fetch(`/api/skills/${endpoint}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'API Error');
+        return data;
+    }
+
+    async function apiAdmin(endpoint, options = {}) {
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers,
+        };
+        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+        const response = await fetch(`/api/admin/skills/${endpoint}`, { ...options, headers });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'API Error');
+        return data;
+    }
+
+    function showSection(name) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(`section-${name}`).classList.add('active');
+        document.querySelector(`.nav-item[data-section="${name}"]`).classList.add('active');
+
+        if (name === 'dashboard') loadDashboard();
+        else if (name === 'skills') loadSkills();
+        else if (name === 'matches') loadMatches();
+        else if (name === 'suggestions') loadSuggestions();
+        else if (name === 'sources') loadSources();
+    }
+
+    async function loadDashboard() {
+        try {
+            stats = await apiPublic('stats');
+            renderStats();
+        } catch (e) {
+            showToast(e.message, 'error');
+        }
+    }
+
+    function renderStats() {
+        const grid = document.getElementById('statsGrid');
+        grid.innerHTML = `
+            <div class="stat-card"><div class="label">Total Skills</div><div class="value primary">${stats.total_skills || 0}</div></div>
+            <div class="stat-card"><div class="label">Core Skills</div><div class="value">${stats.core_skills || 0}</div></div>
+            <div class="stat-card"><div class="label">Expert Skills</div><div class="value">${stats.expert_skills || 0}</div></div>
+            <div class="stat-card"><div class="label">Pending Reviews</div><div class="value warning">${stats.pending_reviews || 0}</div></div>
+            <div class="stat-card"><div class="label">Approved Matches</div><div class="value success">${stats.approved || 0}</div></div>
+            <div class="stat-card"><div class="label">Rejected</div><div class="value danger">${stats.rejected || 0}</div></div>
+            <div class="stat-card"><div class="label">Total Matches</div><div class="value">${stats.total_matches || 0}</div></div>
+            <div class="stat-card"><div class="label">Adopted</div><div class="value success">${stats.adoptions || 0}</div></div>
+        `;
+    }
+
+    async function loadSkills() {
+        try {
+            const data = await apiPublic('');
+            skills = data.skills || [];
+            renderSkillsTable(skills);
+        } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    function filterSkills() {
+        const search = document.getElementById('skillSearch').value.toLowerCase();
+        const dept = document.getElementById('filterDept').value;
+        const type = document.getElementById('filterType').value;
+
+        let filtered = skills;
+        if (search) filtered = filtered.filter(s =>
+            s.name.toLowerCase().includes(search) ||
+            s.slug.toLowerCase().includes(search) ||
+            (s.description || '').toLowerCase().includes(search)
+        );
+        if (dept) filtered = filtered.filter(s => s.department === dept);
+        if (type === 'core') filtered = filtered.filter(s => s.is_core_skill);
+        if (type === 'expert') filtered = filtered.filter(s => s.is_expert_skill);
+
+        renderSkillsTable(filtered);
+    }
+
+    function renderSkillsTable(data) {
+        document.getElementById('skillsCount').textContent = `${data.length} skills`;
+        const tbody = document.getElementById('skillsTableBody');
+        tbody.innerHTML = data.map(s => `
+            <tr>
+                <td><strong>${escapeHtml(s.name)}</strong><br><span style="font-size:11px;color:var(--color-text-tertiary)">${escapeHtml(s.slug)}</span></td>
+                <td class="truncate">${escapeHtml((s.description || '').slice(0, 120))}</td>
+                <td><span class="badge dept-${s.department}">${s.department}</span></td>
+                <td><span class="badge ${s.is_core_skill ? 'badge-primary' : 'badge-success'}">${s.is_core_skill ? 'Core' : 'Expert'}</span></td>
+                <td><span class="version">${s.current_version || '1.0.0'}</span></td>
+                <td>${(s.keywords || []).slice(0, 3).map(k => `<span class="keyword">${escapeHtml(k)}</span>`).join('')}</td>
+            </tr>
+        `).join('');
+    }
+
+    async function loadMatches() {
+        try {
+            const data = await apiPublic(`matches${currentMatchFilter ? '?status=' + currentMatchFilter : ''}`);
+            matches = data.matches || [];
+            renderMatchTabs();
+            renderMatches();
+        } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    function renderMatchTabs() {
+        const counts = { '': matches.length };
+        ['pending', 'approved', 'rejected', 'override'].forEach(s => {
+            counts[s] = matches.filter(m => m.review_status === s).length;
+        });
+        const tabs = document.getElementById('matchTabs');
+        tabs.innerHTML = [
+            { key: '', label: 'All' },
+            { key: 'pending', label: 'Pending' },
+            { key: 'approved', label: 'Approved' },
+            { key: 'rejected', label: 'Rejected' },
+            { key: 'override', label: 'Override' },
+        ].map(t => `
+            <div class="status-tab ${currentMatchFilter === t.key ? 'active' : ''}"
+                 onclick="currentMatchFilter='${t.key}';loadMatches()">
+                ${t.label}<span class="count">${counts[t.key] || 0}</span>
+            </div>
+        `).join('');
+    }
+
+    function renderMatches() {
+        document.getElementById('matchesCount').textContent = `${matches.length} matches`;
+        const list = document.getElementById('matchesList');
+
+        if (!matches.length) {
+            list.innerHTML = '<div class="card" style="text-align:center;color:var(--color-text-tertiary)">No matches found. Sync registry data first.</div>';
+            return;
+        }
+
+        list.innerHTML = matches.map(m => {
+            const expert = m.expert || {};
+            const conf = Math.round((m.confidence || 0) * 100);
+            const confColor = conf >= 60 ? 'var(--color-success)' : conf >= 30 ? 'var(--color-warning)' : 'var(--color-danger)';
+
+            return `
+            <div class="match-card status-${m.review_status}">
+                <div class="match-grid">
+                    <div class="match-skill">
+                        <span class="badge badge-success">Expert</span>
+                        <h4>${escapeHtml(expert.name || m.expert_skill_id)}</h4>
+                        <p>${escapeHtml((expert.description || '').slice(0, 150))}</p>
+                        <div class="match-meta">${escapeHtml(expert.department || '')} &middot; ${escapeHtml(expert.author_name || '')}</div>
+                    </div>
+                    <div class="match-arrow">&#8596;</div>
+                    <div class="match-skill">
+                        <span class="badge badge-primary">Core</span>
+                        <h4>${escapeHtml(m.core_skill_slug)}</h4>
+                        <div class="match-meta">
+                            <span class="badge badge-gray">${escapeHtml(m.match_type || '')}</span>
+                            &middot; ${conf}% confidence
+                        </div>
+                        <div class="confidence-bar"><div class="confidence-fill" style="width:${conf}%;background:${confColor}"></div></div>
+                        <p style="margin-top:0.5rem;font-size:11px;color:var(--color-text-tertiary)">${escapeHtml(m.reasoning || '')}</p>
+                    </div>
+                </div>
+                ${m.reviewer_notes ? `<div style="margin-top:0.75rem;padding:0.5rem;background:var(--color-bg-secondary);border-radius:var(--radius-md);font-size:12px"><strong>Notes:</strong> ${escapeHtml(m.reviewer_notes)}</div>` : ''}
+                ${!isReadOnly ? `
+                <div class="match-actions">
+                    <button class="btn btn-success btn-sm" onclick="reviewMatch('${m.id}','approved')">Approve</button>
+                    <button class="btn btn-danger btn-sm" onclick="reviewMatch('${m.id}','rejected')">Reject</button>
+                    <button class="btn btn-warning btn-sm" onclick="promptOverride('${m.id}')">Override</button>
+                    <span class="badge badge-${m.review_status === 'approved' ? 'success' : m.review_status === 'rejected' ? 'danger' : m.review_status === 'override' ? 'warning' : 'gray'}" style="margin-left:auto">
+                        ${m.review_status}
+                    </span>
+                </div>` : `
+                <div class="match-actions">
+                    <span class="badge badge-${m.review_status === 'approved' ? 'success' : m.review_status === 'rejected' ? 'danger' : m.review_status === 'override' ? 'warning' : 'gray'}" style="margin-left:auto">
+                        ${m.review_status}
+                    </span>
+                </div>`}
+            </div>`;
+        }).join('');
+    }
+
+    async function reviewMatch(id, status, notes) {
+        try {
+            await apiAdmin(`matches/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ review_status: status, reviewer_notes: notes || '' }),
+            });
+            showToast(`Match ${status}`, 'success');
+            loadMatches();
+            loadDashboard();
+        } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    function promptOverride(id) {
+        const notes = prompt('Override notes (why does this match need correction?):');
+        if (notes !== null) reviewMatch(id, 'override', notes);
+    }
+
+    async function loadSuggestions() {
+        try {
+            const data = await apiPublic('suggestions');
+            suggestions = data.suggestions || [];
+            renderSuggestions();
+        } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    function renderSuggestions() {
+        document.getElementById('suggestionsCount').textContent = `${suggestions.length} suggestions`;
+        const grid = document.getElementById('suggestionsGrid');
+
+        if (!suggestions.length) {
+            grid.innerHTML = '<div class="card" style="text-align:center;color:var(--color-text-tertiary)">No new suggestions. All expert skills have been matched or adopted.</div>';
+            return;
+        }
+
+        grid.innerHTML = suggestions.map(s => `
+            <div class="suggestion-card">
+                <h4>${escapeHtml(s.name)}</h4>
+                <p>${escapeHtml((s.description || '').slice(0, 200))}</p>
+                <div class="meta">
+                    <span class="badge dept-${s.department}">${s.department}</span>
+                    <span class="badge badge-success">${escapeHtml(s.author_name || 'Unknown')}</span>
+                    <span class="badge badge-gray">${escapeHtml(s.license || '')}</span>
+                </div>
+                <div style="margin-bottom:0.75rem">${(s.keywords || []).slice(0, 5).map(k => `<span class="keyword">${escapeHtml(k)}</span>`).join('')}</div>
+                ${!isReadOnly ? `<button class="btn btn-success btn-sm" onclick="openAdoptModal('${s.id}','${escapeHtml(s.name)}','${s.current_version || '1.0.0'}')">Adopt</button>` : ''}
+            </div>
+        `).join('');
+    }
+
+    function openAdoptModal(id, name, version) {
+        document.getElementById('adoptSkillId').value = id;
+        document.getElementById('adoptSkillName').value = name;
+        document.getElementById('adoptVersion').value = version;
+        document.getElementById('adoptNotes').value = '';
+        document.getElementById('adoptModal').classList.add('active');
+    }
+
+    function closeAdoptModal() {
+        document.getElementById('adoptModal').classList.remove('active');
+    }
+
+    async function confirmAdopt() {
+        try {
+            await apiAdmin('adopt', {
+                method: 'POST',
+                body: JSON.stringify({
+                    expert_skill_id: document.getElementById('adoptSkillId').value,
+                    adopted_version: document.getElementById('adoptVersion').value,
+                    notes: document.getElementById('adoptNotes').value,
+                }),
+            });
+            closeAdoptModal();
+            showToast('Skill adopted successfully', 'success');
+            loadSuggestions();
+            loadDashboard();
+        } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    async function loadSources() {
+        try {
+            const data = await apiPublic('sources');
+            sources = data.sources || [];
+            renderSources();
+        } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    function renderSources() {
+        const list = document.getElementById('sourcesList');
+        list.innerHTML = sources.map(s => `
+            <div class="card">
+                <div class="card-header">
+                    <h3>${escapeHtml(s.name)}</h3>
+                    <span class="badge ${s.type === 'core' ? 'badge-primary' : 'badge-success'}">${s.type}</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:13px">
+                    <div><strong>Author:</strong> ${escapeHtml(s.author_name || 'N/A')}</div>
+                    <div><strong>License:</strong> ${escapeHtml(s.license || 'N/A')}</div>
+                    <div><strong>Department:</strong> <span class="badge dept-${s.department}">${s.department || 'multi'}</span></div>
+                    <div><strong>Last Scanned:</strong> ${s.last_scanned_at ? new Date(s.last_scanned_at).toLocaleDateString() : 'Never'}</div>
+                    ${s.repo_url ? `<div style="grid-column:span 2"><strong>Repo:</strong> <a href="${escapeHtml(s.repo_url)}" target="_blank" style="color:var(--color-primary)">${escapeHtml(s.repo_url)}</a></div>` : ''}
+                    ${s.author_url ? `<div style="grid-column:span 2"><strong>Website:</strong> <a href="${escapeHtml(s.author_url)}" target="_blank" style="color:var(--color-primary)">${escapeHtml(s.author_url)}</a></div>` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function openSyncModal() {
+        if (isReadOnly) { showToast('Sign in to sync registry', 'error'); return; }
+        document.getElementById('syncModal').classList.add('active');
+        document.getElementById('syncStatus').style.display = 'none';
+        document.getElementById('syncBtn').disabled = true;
+        registryJson = null;
+    }
+
+    function closeSyncModal() {
+        document.getElementById('syncModal').classList.remove('active');
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        e.target.closest('.drop-zone').classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file) readRegistryFile(file);
+    }
+
+    function handleFileSelect(e) {
+        const file = e.target.files[0];
+        if (file) readRegistryFile(file);
+    }
+
+    function readRegistryFile(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                registryJson = JSON.parse(e.target.result);
+                document.getElementById('syncStatus').style.display = 'block';
+                document.getElementById('syncStatus').innerHTML = `
+                    <div class="card" style="margin:0;padding:0.75rem">
+                        <strong>${file.name}</strong> loaded<br>
+                        <span style="font-size:12px;color:var(--color-text-tertiary)">
+                            ${registryJson.skills?.length || 0} skills, ${registryJson.sources?.length || 0} sources, ${registryJson.matchResults?.length || 0} match results
+                        </span>
+                    </div>
+                `;
+                document.getElementById('syncBtn').disabled = false;
+            } catch (err) {
+                showToast('Invalid JSON file', 'error');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    async function performSync() {
+        if (!registryJson) return;
+        const btn = document.getElementById('syncBtn');
+        btn.disabled = true;
+        btn.textContent = 'Syncing...';
+
+        try {
+            const result = await apiAdmin('sync', {
+                method: 'POST',
+                body: JSON.stringify(registryJson),
+            });
+            showToast(`Synced: ${result.sources_synced} sources, ${result.skills_synced} skills, ${result.matches_synced} matches`, 'success');
+            closeSyncModal();
+            loadDashboard();
+        } catch (e) {
+            showToast(e.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Sync';
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = `toast ${type} show`;
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+</script>
+
+</body>
+</html>
