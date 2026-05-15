@@ -33,3 +33,6 @@ Thumbs.db
 # Old Flask app (archived)
 AIDevelopment/venv/
 .vercel
+
+# Local-only working directories
+MyAgentSkills/
