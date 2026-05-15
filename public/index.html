@@ -63,6 +63,7 @@
 
         .app-icon.digest   { background: var(--gradient-brand); }
         .app-icon.aistack  { background: linear-gradient(135deg, #34c759, #1f8a3d); }
+        .app-icon.higgins  { background: linear-gradient(135deg, #06b6d4, #a78bfa); }
         .app-icon.thought  { background: linear-gradient(135deg, #ff9500, #cc6f00); }
         .app-icon.proposal { background: linear-gradient(135deg, #007aff, #0058b8); }
         .app-icon.meeting  { background: linear-gradient(135deg, #af52de, #7c3aed); }
@@ -115,6 +116,13 @@
         }
         .app-status.coming .app-status-dot { background: var(--color-text-tertiary); }
 
+        .app-status.prototype {
+            background: rgba(6,182,212,0.14);
+            color: #0e7490;
+        }
+        .app-status.prototype .app-status-dot { background: #06b6d4; }
+        [data-theme="dark"] .app-status.prototype { color: #67e8f9; }
+
         /* CTA */
         .cta-section {
             text-align: center;
@@ -151,6 +159,7 @@
     <a href="/digest"   class="navbar-link">AI Digest</a>
     <a href="/ai-stack" class="navbar-link">AI Stack</a>
     <a href="/skills"   class="navbar-link">Skills</a>
+    <a href="/higgins2" class="navbar-link">Higgins 2.0</a>
     <a href="https://jbherrera.com" class="navbar-link" target="_blank" rel="noopener">Main Site</a>
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
       <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -215,6 +224,31 @@
             <span class="app-status live">
                 <span class="app-status-dot"></span>
                 Live
+            </span>
+        </a>
+
+        <!-- Higgins 2.0 - Prototype -->
+        <a href="/higgins2" class="app-card">
+            <div class="app-icon higgins">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 8V4H8"></path>
+                    <rect width="16" height="12" x="4" y="8" rx="2"></rect>
+                    <path d="M2 14h2"></path>
+                    <path d="M20 14h2"></path>
+                    <path d="M15 13v2"></path>
+                    <path d="M9 13v2"></path>
+                </svg>
+            </div>
+            <h3>Higgins 2.0</h3>
+            <p>A voice-first agentic command center for the Insight 360 framework. Floating Higgins card, command palette, and a live workspace canvas with OKR metrics and pinnable artifacts.</p>
+            <div class="app-features">
+                <span class="app-feature">Voice + Text</span>
+                <span class="app-feature">Workspace Canvas</span>
+                <span class="app-feature">Cmd+K Palette</span>
+            </div>
+            <span class="app-status prototype">
+                <span class="app-status-dot"></span>
+                Prototype
             </span>
         </a>
 

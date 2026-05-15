@@ -1,0 +1,2030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Higgins 2.0 — AI.JBHerrera</title>
+<meta name="description" content="Higgins 2.0 — agentic, voice-first command center for the Insight 360 framework. Prototype."/>
+
+<!-- Theme: set before paint to avoid light-flash for dark users -->
+<script>
+  (function(){
+    var s = localStorage.getItem('theme');
+    var d = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', s || d);
+  })();
+</script>
+
+<link rel="stylesheet" href="/styles/base.css"/>
+
+<style>
+/* ============================================
+   HIGGINS 2.0 — extends /styles/base.css
+   Adds Higgins-specific tokens and component styles.
+   ============================================ */
+:root {
+  /* Agent identity — cyan/violet stays consistent across themes */
+  --agent-accent: #06b6d4;
+  --agent-accent-muted: rgba(6, 182, 212, 0.15);
+  --agent-avatar-glow: rgba(6, 182, 212, 0.3);
+  --agent-thinking: #a78bfa;
+
+  /* Direct palette refs used by a few components */
+  --p-indigo-400: var(--color-primary);
+  --p-cyan-400: #22d3ee;
+  --p-red-500: #ff3b30;
+
+  /* Layered surfaces — workspace base is tinted so floating blocks pop */
+  --surface-base: #f5f5f7;     /* workspace background */
+  --surface-raised: #ffffff;   /* canvas blocks / floating card */
+  --surface-overlay: #ffffff;  /* nested cards / inputs */
+  --surface-sunken: #e8e8ed;   /* progress tracks */
+
+  /* Text aliases */
+  --text-primary: var(--color-text);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-tertiary);
+
+  /* Border aliases */
+  --border-default: var(--color-border-subtle);
+  --border-subtle: var(--color-border);
+
+  /* Primary muted */
+  --color-primary-muted: var(--color-primary-soft);
+
+  /* Status aliases */
+  --status-success: var(--color-success);
+  --status-warning: var(--color-warning);
+  --status-danger: var(--color-danger);
+
+  /* Font aliases — Higgins uses the site's system stack */
+  --font-body: var(--font-sans);
+  --font-heading: var(--font-sans);
+
+  /* Animation extras (base.css provides fast/base/slow) */
+  --duration-instant: 100ms;
+  --duration-moderate: 300ms;
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Heavier shadow for the floating Higgins card */
+  --shadow-xl: 0 20px 40px -5px rgba(0,0,0,0.16), 0 0 60px rgba(6,182,212,0.06);
+}
+
+[data-theme="dark"] {
+  --shadow-xl: 0 20px 40px -5px rgba(0,0,0,0.5), 0 0 60px rgba(6,182,212,0.08);
+
+  /* Dark surfaces — raised lighter than base for elevation */
+  --surface-base: #000000;
+  --surface-raised: #1c1c1e;
+  --surface-overlay: #2c2c2e;
+  --surface-sunken: #0a0a0c;
+}
+
+/* ============================================
+   PAGE-LEVEL — Higgins is an app shell within the site
+   ============================================ */
+html, body { height: 100%; overflow: hidden; }
+
+/* ============================================
+   CANVAS (Full screen workspace)
+   ============================================ */
+.workspace {
+  width: 100vw;
+  height: 100vh;
+  overflow-y: auto;
+  padding: var(--space-8);
+  padding-bottom: 120px;
+  position: relative;
+}
+
+.workspace::-webkit-scrollbar { width: 6px; }
+.workspace::-webkit-scrollbar-track { background: transparent; }
+.workspace::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: var(--radius-full); }
+
+/* Subtle top glow */
+.workspace::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 10%, var(--agent-accent), var(--color-primary), transparent 90%);
+  opacity: 0.3;
+  z-index: 10;
+}
+
+.canvas-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* ============================================
+   FLOATING HIGGINS CARD
+   ============================================ */
+.higgins-card {
+  position: fixed;
+  bottom: var(--space-6);
+  left: var(--space-6);
+  width: 400px;
+  height: 520px;
+  min-width: 320px;
+  min-height: 380px;
+  max-width: 560px;
+  max-height: 80vh;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  overflow: hidden;
+  transition: opacity var(--duration-moderate) var(--ease-default),
+              transform var(--duration-moderate) var(--ease-spring);
+}
+
+.higgins-card.minimized {
+  opacity: 0;
+  transform: scale(0.9) translateY(20px);
+  pointer-events: none;
+}
+
+/* Resize handles */
+.higgins-card .resize-handle {
+  position: absolute;
+  z-index: 5;
+}
+
+.higgins-card .resize-handle.right {
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+}
+
+.higgins-card .resize-handle.top {
+  top: -3px;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  cursor: ns-resize;
+}
+
+.higgins-card .resize-handle.top-right {
+  top: -3px;
+  right: -3px;
+  width: 16px;
+  height: 16px;
+  cursor: nesw-resize;
+}
+
+/* Drag bar */
+.higgins-drag-bar {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.higgins-drag-bar:active { cursor: grabbing; }
+
+.higgins-drag-bar .drag-pill {
+  width: 32px;
+  height: 4px;
+  background: var(--border-subtle);
+  border-radius: var(--radius-full);
+  transition: background var(--duration-fast);
+}
+
+.higgins-drag-bar:hover .drag-pill { background: var(--text-muted); }
+
+/* Avatar Section */
+.avatar-section {
+  padding: 0 var(--space-4) var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+.higgins-avatar-container {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, #0d1520, #131830);
+  border: 1px solid rgba(6,182,212,0.25);
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 3D Avatar placeholder — shows animated face visualization */
+.avatar-3d {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-face {
+  width: 36px;
+  height: 36px;
+  position: relative;
+}
+
+.avatar-face .eye {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: var(--agent-accent);
+  border-radius: var(--radius-full);
+  top: 10px;
+  box-shadow: 0 0 8px var(--agent-accent);
+  animation: eyeBlink 4s ease-in-out infinite;
+}
+
+.avatar-face .eye.left { left: 8px; }
+.avatar-face .eye.right { right: 8px; }
+
+@keyframes eyeBlink {
+  0%, 45%, 55%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.1); }
+}
+
+.avatar-face .mouth {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 3px;
+  background: var(--agent-accent);
+  border-radius: 0 0 6px 6px;
+  opacity: 0.6;
+  transition: all var(--duration-base);
+}
+
+.avatar-face.speaking .mouth {
+  animation: speak 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes speak {
+  0% { height: 3px; width: 12px; border-radius: 0 0 6px 6px; }
+  100% { height: 7px; width: 10px; border-radius: 50%; }
+}
+
+.avatar-face.thinking .eye {
+  animation: none;
+  opacity: 0.6;
+}
+
+.avatar-face.thinking .eye.left { transform: translateX(2px); }
+.avatar-face.thinking .eye.right { transform: translateX(-2px); }
+
+/* Avatar ambient glow ring */
+.avatar-glow {
+  position: absolute;
+  inset: -2px;
+  border-radius: var(--radius-lg);
+  border: 2px solid transparent;
+  background: conic-gradient(from 0deg, var(--agent-accent), transparent 40%, var(--color-primary), transparent 80%, var(--agent-accent)) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: glowSpin 6s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes glowSpin {
+  to { rotate: 360deg; }
+}
+
+.avatar-status-dot {
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--status-success);
+  border: 2px solid var(--surface-raised);
+  z-index: 2;
+}
+
+.avatar-status-dot.thinking {
+  background: var(--agent-thinking);
+  animation: statusPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.higgins-identity {
+  flex: 1;
+  min-width: 0;
+}
+
+.higgins-name {
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.higgins-status-text {
+  font-size: 0.7rem;
+  color: var(--agent-accent);
+  margin-top: 1px;
+}
+
+.card-header-actions {
+  display: flex;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+/* Icon Button */
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-default);
+  flex-shrink: 0;
+}
+
+.icon-btn:hover { background: var(--color-primary-muted); color: var(--text-primary); }
+.icon-btn svg { width: 16px; height: 16px; }
+.icon-btn.pinned { color: var(--agent-accent); }
+
+/* Conversation Stream */
+.conversation-stream {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  scroll-behavior: smooth;
+}
+
+.conversation-stream::-webkit-scrollbar { width: 3px; }
+.conversation-stream::-webkit-scrollbar-track { background: transparent; }
+.conversation-stream::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: var(--radius-full); }
+
+/* Messages */
+.message { display: flex; flex-direction: column; max-width: 92%; animation: messageIn var(--duration-moderate) var(--ease-spring); }
+.message.user { align-self: flex-end; align-items: flex-end; }
+.message.agent { align-self: flex-start; align-items: flex-start; }
+
+@keyframes messageIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message-bubble {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.message.user .message-bubble {
+  background: var(--color-primary-muted);
+  border: 1px solid rgba(99,102,241,0.2);
+}
+
+.message.agent .message-bubble {
+  background: var(--surface-overlay);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--agent-accent);
+}
+
+.message-meta {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.message-meta .model-badge { color: var(--agent-accent); opacity: 0.7; }
+
+/* Speaking indicator on agent messages */
+.message.agent .message-bubble .speaking-icon {
+  display: inline-flex;
+  gap: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.speaking-icon span {
+  width: 2px;
+  height: 10px;
+  background: var(--agent-accent);
+  border-radius: 1px;
+  animation: speakBar 0.6s ease-in-out infinite alternate;
+}
+
+.speaking-icon span:nth-child(1) { height: 6px; animation-delay: 0s; }
+.speaking-icon span:nth-child(2) { height: 10px; animation-delay: 0.1s; }
+.speaking-icon span:nth-child(3) { height: 4px; animation-delay: 0.2s; }
+.speaking-icon span:nth-child(4) { height: 8px; animation-delay: 0.3s; }
+
+@keyframes speakBar {
+  to { height: 3px; }
+}
+
+/* Quick Reply Chips */
+.quick-replies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.chip {
+  padding: 3px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--agent-accent);
+  background: transparent;
+  color: var(--agent-accent);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-default);
+  white-space: nowrap;
+}
+
+.chip:hover { background: var(--agent-accent-muted); color: var(--p-cyan-400); }
+
+/* Thinking */
+.thinking-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-overlay);
+  border-radius: var(--radius-lg);
+  border-left: 3px solid var(--agent-thinking);
+  animation: messageIn var(--duration-moderate) var(--ease-spring);
+}
+
+.thinking-dots { display: flex; gap: 3px; }
+
+.thinking-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--agent-thinking);
+  animation: dotPulse 1.4s ease-in-out infinite;
+}
+
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotPulse {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
+.thinking-text { font-size: 0.75rem; color: var(--text-secondary); font-style: italic; }
+
+/* ============================================
+   VOICE-FIRST INPUT
+   ============================================ */
+.higgins-input-area {
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border-top: 1px solid var(--border-default);
+  flex-shrink: 0;
+}
+
+.voice-input-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Mic button — primary input */
+.mic-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--agent-accent);
+  background: transparent;
+  color: var(--agent-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-default);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.mic-btn:hover {
+  background: var(--agent-accent-muted);
+  box-shadow: 0 0 16px var(--agent-avatar-glow);
+}
+
+.mic-btn.listening {
+  background: rgba(6,182,212,0.15);
+  border-color: var(--p-cyan-400);
+  animation: micPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(6,182,212,0.3); }
+  50% { box-shadow: 0 0 0 10px rgba(6,182,212,0); }
+}
+
+.mic-btn svg { width: 20px; height: 20px; }
+
+/* Waveform visualization */
+.voice-waveform {
+  flex: 1;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--duration-base);
+}
+
+.voice-waveform.active { opacity: 1; }
+
+.voice-waveform .bar {
+  width: 3px;
+  background: var(--agent-accent);
+  border-radius: 2px;
+  transition: height 0.1s;
+}
+
+/* Text input — secondary */
+.text-input-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--surface-overlay);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
+  transition: border-color var(--duration-fast);
+}
+
+.text-input-wrapper:focus-within {
+  border-color: var(--agent-accent);
+  box-shadow: 0 0 0 2px rgba(6,182,212,0.1);
+}
+
+.text-input-wrapper textarea {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  resize: none;
+  outline: none;
+  min-height: 20px;
+  max-height: 80px;
+}
+
+.text-input-wrapper textarea::placeholder { color: var(--text-muted); }
+
+.send-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--agent-accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  flex-shrink: 0;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.send-btn.active { opacity: 1; pointer-events: auto; }
+.send-btn.active:hover { background: var(--p-cyan-400); }
+.send-btn svg { width: 14px; height: 14px; }
+
+.input-meta {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px var(--space-1) 0;
+  font-size: 0.625rem;
+  color: var(--text-muted);
+}
+
+/* Listening state label */
+.listening-label {
+  display: none;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.75rem;
+  color: var(--agent-accent);
+  animation: fadeInUp var(--duration-base) var(--ease-out);
+}
+
+.listening-label.visible { display: flex; }
+
+.listening-label .rec-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--p-red-500);
+  animation: recPulse 1s ease-in-out infinite;
+}
+
+@keyframes recPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================
+   AMBIENT AVATAR (Minimized state)
+   ============================================ */
+.ambient-avatar {
+  position: fixed;
+  bottom: var(--space-6);
+  left: var(--space-6);
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-xl);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 99;
+  box-shadow: var(--shadow-lg);
+  transition: all var(--duration-moderate) var(--ease-spring);
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ambient-avatar.visible {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.ambient-avatar:hover {
+  box-shadow: var(--shadow-xl);
+  transform: scale(1.06);
+  border-color: var(--agent-accent);
+}
+
+.ambient-avatar .avatar-3d-mini {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.ambient-avatar .mini-face .eye {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--agent-accent);
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 6px var(--agent-accent);
+  animation: eyeBlink 4s ease-in-out infinite;
+}
+
+.ambient-avatar .mini-face .eye.left { top: 18px; left: 14px; }
+.ambient-avatar .mini-face .eye.right { top: 18px; right: 14px; }
+
+.ambient-avatar .mini-face .mouth {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 2px;
+  background: var(--agent-accent);
+  border-radius: 0 0 4px 4px;
+  opacity: 0.5;
+}
+
+.ambient-glow {
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--radius-xl);
+  border: 1.5px solid transparent;
+  background: conic-gradient(from 0deg, var(--agent-accent), transparent 40%, var(--color-primary), transparent 80%, var(--agent-accent)) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: glowSpin 6s linear infinite;
+  opacity: 0.5;
+}
+
+/* ============================================
+   MODE TOGGLE & COMPOSE BUTTON
+   ============================================ */
+.top-bar {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  z-index: 50;
+}
+
+.compose-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary-muted);
+  color: var(--p-indigo-400);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.compose-btn.visible { opacity: 1; pointer-events: auto; }
+.compose-btn:hover { background: var(--color-primary); color: white; }
+.compose-btn svg { width: 14px; height: 14px; }
+
+.palette-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
+  background: var(--surface-overlay);
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.palette-trigger:hover { border-color: var(--text-muted); color: var(--text-secondary); }
+.palette-trigger svg { width: 14px; height: 14px; }
+
+.mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--surface-overlay);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  padding: 4px 14px 4px 6px;
+}
+
+.mode-toggle label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.mode-switch {
+  width: 36px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--border-default);
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: background var(--duration-fast);
+}
+
+.mode-switch.active { background: var(--agent-accent); }
+
+.mode-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  background: white;
+  transition: transform var(--duration-fast) var(--ease-spring);
+}
+
+.mode-switch.active::after { transform: translateX(16px); }
+
+/* ============================================
+   COMMAND PALETTE
+   ============================================ */
+.palette-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-base);
+  backdrop-filter: blur(4px);
+}
+
+.palette-scrim.open { opacity: 1; pointer-events: auto; }
+
+.command-palette {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.96);
+  width: 580px;
+  max-height: 70vh;
+  background: var(--surface-overlay);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 1001;
+  opacity: 0;
+  pointer-events: none;
+  transition: all var(--duration-moderate) var(--ease-spring);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.command-palette.open { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+
+.palette-search {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.palette-search svg { width: 18px; height: 18px; color: var(--text-muted); flex-shrink: 0; }
+
+.palette-search input {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  outline: none;
+}
+
+.palette-search input::placeholder { color: var(--text-muted); }
+
+.palette-search .shortcut {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  background: var(--surface-sunken);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+}
+
+.palette-body {
+  padding: var(--space-4) var(--space-5);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.palette-section { margin-bottom: var(--space-5); }
+.palette-section:last-child { margin-bottom: 0; }
+
+.palette-section-title {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-3);
+}
+
+.suggestion-cards { display: flex; gap: var(--space-3); }
+
+.suggestion-card {
+  flex: 1;
+  padding: var(--space-3);
+  background: var(--agent-accent-muted);
+  border: 1px solid rgba(6,182,212,0.15);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.suggestion-card:hover { border-color: rgba(6,182,212,0.4); }
+.suggestion-card .sug-title { font-size: 0.8125rem; font-weight: 600; margin-bottom: 2px; }
+.suggestion-card .sug-desc { font-size: 0.7rem; color: var(--text-secondary); }
+
+.module-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--space-2); }
+
+.module-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-2);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.module-tile:hover { border-color: var(--color-primary); background: var(--color-primary-muted); }
+.module-tile svg { width: 20px; height: 20px; color: var(--color-primary); }
+.module-tile span { font-size: 0.625rem; font-weight: 500; color: var(--text-secondary); }
+.module-tile.locked { opacity: 0.35; cursor: not-allowed; }
+
+.recent-list { display: flex; flex-direction: column; gap: 2px; }
+
+.recent-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.recent-item:hover { background: rgba(99,102,241,0.06); }
+.recent-item svg { width: 13px; height: 13px; color: var(--text-muted); }
+.recent-item span { font-size: 0.8125rem; color: var(--text-secondary); }
+.recent-item .recent-time { margin-left: auto; font-size: 0.625rem; color: var(--text-muted); }
+
+/* ============================================
+   CANVAS BLOCKS
+   ============================================ */
+.canvas-block {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  animation: blockIn var(--duration-moderate) var(--ease-spring) both;
+  transition: border-color var(--duration-fast);
+}
+
+.canvas-block.pinned { border-top: 2px solid var(--agent-accent); }
+
+@keyframes blockIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.block-title { font-size: 0.8125rem; font-weight: 600; }
+.block-actions { display: flex; gap: 2px; }
+.block-actions .icon-btn { width: 26px; height: 26px; }
+.block-actions .icon-btn svg { width: 13px; height: 13px; }
+
+.block-content { padding: var(--space-4); }
+
+.block-footer {
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.block-footer .generated-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: var(--agent-accent);
+}
+
+/* Metric Cards */
+.metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3); }
+
+.metric-card {
+  text-align: center;
+  padding: var(--space-3) var(--space-2);
+  background: var(--surface-overlay);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+}
+
+.metric-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+  margin-bottom: var(--space-1);
+}
+
+.metric-value {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.metric-value.success { color: var(--status-success); }
+.metric-value.warning { color: var(--status-warning); }
+.metric-value.danger { color: var(--status-danger); }
+.metric-value.primary { color: var(--color-primary); }
+
+.metric-trend {
+  font-size: 0.65rem;
+  margin-top: var(--space-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.metric-trend.up { color: var(--status-success); }
+.metric-trend.down { color: var(--status-danger); }
+.metric-trend.flat { color: var(--text-muted); }
+
+/* Chart */
+.chart-area { height: 180px; position: relative; }
+.chart-canvas { width: 100%; height: 100%; }
+
+/* Data Table */
+.data-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+
+.data-table th {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--surface-overlay);
+}
+
+.data-table td {
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.data-table tr:hover td { background: rgba(99,102,241,0.04); }
+
+.status-badge {
+  display: inline-flex;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+.status-badge.at-risk { background: rgba(245,158,11,0.15); color: var(--status-warning); }
+.status-badge.behind { background: rgba(239,68,68,0.15); color: var(--status-danger); }
+
+.progress-bar-cell { display: flex; align-items: center; gap: var(--space-2); }
+
+.progress-bar {
+  flex: 1;
+  height: 5px;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar-fill { height: 100%; border-radius: var(--radius-full); }
+.progress-bar-fill.warning { background: var(--status-warning); }
+.progress-bar-fill.danger { background: var(--status-danger); }
+
+/* Narrative */
+.narrative-text { font-size: 0.875rem; line-height: 1.7; color: var(--text-secondary); }
+.narrative-text strong { color: var(--text-primary); font-weight: 600; }
+.narrative-text .highlight { color: var(--agent-accent); font-weight: 500; }
+
+/* Department breakdown */
+.dept-breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
+
+.dept-card {
+  padding: var(--space-3);
+  background: var(--surface-overlay);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  text-align: center;
+}
+
+.dept-name { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: var(--space-1); }
+.dept-score { font-family: var(--font-heading); font-size: 1.25rem; font-weight: 700; margin-bottom: var(--space-1); }
+.dept-bar { height: 4px; background: var(--surface-sunken); border-radius: var(--radius-full); overflow: hidden; }
+.dept-bar-fill { height: 100%; border-radius: var(--radius-full); }
+
+/* ============================================
+   ARTIFACT COMPOSER OVERLAY
+   ============================================ */
+.composer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-base);
+  backdrop-filter: blur(6px);
+}
+
+.composer-overlay.open { opacity: 1; pointer-events: auto; }
+
+.composer-panel {
+  width: 700px;
+  max-height: 85vh;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform: scale(0.96);
+  transition: transform var(--duration-moderate) var(--ease-spring);
+}
+
+.composer-overlay.open .composer-panel { transform: scale(1); }
+
+.composer-header {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.composer-header h2 {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.composer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-5);
+}
+
+.composer-preview {
+  background: var(--surface-base);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  min-height: 300px;
+}
+
+.composer-preview h3 {
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+  margin-bottom: var(--space-6);
+  text-transform: uppercase;
+}
+
+.composer-block {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.composer-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+.composer-block-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-3);
+}
+
+.composer-footer {
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.composer-footer .format-options { display: flex; gap: var(--space-2); }
+
+.format-chip {
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.format-chip:hover { border-color: var(--color-primary); color: var(--text-primary); }
+.format-chip.selected { border-color: var(--color-primary); background: var(--color-primary-muted); color: var(--p-indigo-400); }
+
+.save-artifact-btn {
+  padding: 8px 20px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--color-primary);
+  color: white;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.save-artifact-btn:hover { background: var(--color-primary-hover); }
+
+/* ============================================
+   TOAST
+   ============================================ */
+.toast-container { position: fixed; bottom: var(--space-6); right: var(--space-6); z-index: 2000; display: flex; flex-direction: column; gap: var(--space-2); }
+
+.toast {
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface-overlay);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--agent-accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  animation: toastIn var(--duration-moderate) var(--ease-spring);
+}
+
+.toast.leaving { animation: toastOut var(--duration-base) var(--ease-default) forwards; }
+.toast svg { width: 14px; height: 14px; color: var(--agent-accent); flex-shrink: 0; }
+
+@keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes toastOut { to { opacity: 0; transform: translateX(20px); } }
+
+/* Film grain — softer in light theme */
+.bg-grain {
+  position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: 0.012;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .bg-grain { opacity: 0.025; }
+
+/* ============================================
+   LAYOUT OVERRIDES — fit workspace under site navbar
+   ============================================ */
+.workspace { height: calc(100vh - var(--nav-height)); }
+.top-bar   { top: calc(var(--nav-height) + var(--space-3)); }
+
+/* Top-bar buttons need a surface background in light mode for readability */
+.palette-trigger,
+.mode-toggle {
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
+}
+
+/* Higgins avatar container — keep dark techy identity in both themes */
+.higgins-avatar-container {
+  background: linear-gradient(135deg, #0d1520, #131830);
+}
+
+/* Composer preview should always render on a clean light/dark surface, not the page bg */
+.composer-preview { background: var(--color-bg-secondary); }
+
+/* Subtle bottom-of-card glow — stays gentle in light mode */
+.workspace::before { opacity: 0.25; }
+[data-theme="dark"] .workspace::before { opacity: 0.5; }
+
+/* Apple-style focus rings for top-bar controls */
+.compose-btn:focus-visible,
+.palette-trigger:focus-visible,
+.mode-switch:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="navbar">
+  <a href="/" class="navbar-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M12 16v-4"></path>
+      <path d="M12 8h.01"></path>
+    </svg>
+    AI.JBHerrera
+  </a>
+  <div class="navbar-links">
+    <a href="/digest"   class="navbar-link">AI Digest</a>
+    <a href="/ai-stack" class="navbar-link">AI Stack</a>
+    <a href="/skills"   class="navbar-link">Skills</a>
+    <a href="/higgins2" class="navbar-link active">Higgins 2.0</a>
+    <a href="https://jbherrera.com" class="navbar-link" target="_blank" rel="noopener">Main Site</a>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
+  </div>
+</nav>
+
+<div class="bg-grain"></div>
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Top Bar -->
+<div class="top-bar">
+  <button class="compose-btn" id="composeBtn" onclick="openComposer()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+    Compose Artifact
+  </button>
+  <button class="palette-trigger" onclick="openPalette()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    Navigate
+    <span style="opacity:0.5">&nbsp;&UpTeeArrow;K</span>
+  </button>
+  <div class="mode-toggle">
+    <button class="mode-switch" id="modeSwitch" onclick="toggleMode()"></button>
+    <label onclick="toggleMode()">Minimize</label>
+  </div>
+</div>
+
+<!-- Ambient Avatar (minimized) -->
+<div class="ambient-avatar" id="ambientAvatar" onclick="restoreCard()">
+  <div class="ambient-glow"></div>
+  <div class="avatar-3d-mini">
+    <div class="mini-face">
+      <div class="eye left"></div>
+      <div class="eye right"></div>
+      <div class="mouth"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Command Palette -->
+<div class="palette-scrim" id="paletteScrim" onclick="closePalette()"></div>
+<div class="command-palette" id="commandPalette">
+  <div class="palette-search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input type="text" placeholder="Where do you want to go?" id="paletteSearch" oninput="filterPalette(this.value)">
+    <span class="shortcut" id="shortcutHint">&UpTeeArrow;K</span>
+  </div>
+  <div class="palette-body">
+    <div class="palette-section">
+      <div class="palette-section-title">Suggested by Higgins</div>
+      <div class="suggestion-cards">
+        <div class="suggestion-card" onclick="closePalette()"><div class="sug-title">Review Q1 OKRs</div><div class="sug-desc">3 OKRs are due this Friday</div></div>
+        <div class="suggestion-card" onclick="closePalette()"><div class="sug-title">Support spike</div><div class="sug-desc">Ticket volume 2.1x normal</div></div>
+        <div class="suggestion-card" onclick="closePalette()"><div class="sug-title">Board deck outdated</div><div class="sug-desc">Last updated 18 days ago</div></div>
+      </div>
+    </div>
+    <div class="palette-section">
+      <div class="palette-section-title">Modules</div>
+      <div class="module-grid">
+        <div class="module-tile" onclick="closePalette()" data-name="chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Chat</span></div>
+        <div class="module-tile" onclick="closePalette()" data-name="agents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/></svg><span>Agents</span></div>
+        <div class="module-tile" onclick="closePalette()" data-name="parthenon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/></svg><span>Parthenon</span></div>
+        <div class="module-tile" onclick="closePalette()" data-name="context"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><span>Context</span></div>
+        <div class="module-tile" onclick="closePalette()" data-name="soul"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg><span>Soul</span></div>
+        <div class="module-tile" onclick="closePalette()" data-name="workflows"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Workflows</span></div>
+        <div class="module-tile" onclick="closePalette()" data-name="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg><span>Dashboard</span></div>
+        <div class="module-tile" onclick="closePalette()" data-name="skills"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>Skills</span></div>
+        <div class="module-tile" onclick="closePalette()" data-name="research"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><span>Research</span></div>
+        <div class="module-tile" onclick="closePalette()" data-name="briefings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg><span>Briefings</span></div>
+        <div class="module-tile locked" data-name="analytics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Analytics</span></div>
+        <div class="module-tile" onclick="closePalette()" data-name="admin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span>Admin</span></div>
+      </div>
+    </div>
+    <div class="palette-section">
+      <div class="palette-section-title">Recent</div>
+      <div class="recent-list">
+        <div class="recent-item" onclick="closePalette()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg><span>Dashboard</span><span class="recent-time">2m ago</span></div>
+        <div class="recent-item" onclick="closePalette()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/></svg><span>Agents</span><span class="recent-time">15m ago</span></div>
+        <div class="recent-item" onclick="closePalette()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg><span>Parthenon</span><span class="recent-time">1h ago</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Artifact Composer -->
+<div class="composer-overlay" id="composerOverlay" onclick="closeComposer(event)">
+  <div class="composer-panel" onclick="event.stopPropagation()">
+    <div class="composer-header">
+      <h2>Compose Artifact</h2>
+      <button class="icon-btn" onclick="closeComposer()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="composer-body">
+      <div class="composer-preview" id="composerPreview">
+        <h3>Q1 OKR Review &mdash; March 21, 2026</h3>
+        <!-- Dynamically filled from pinned blocks -->
+      </div>
+    </div>
+    <div class="composer-footer">
+      <div class="format-options">
+        <button class="format-chip selected">HTML</button>
+        <button class="format-chip">PDF</button>
+        <button class="format-chip">Markdown</button>
+        <button class="format-chip">PowerPoint</button>
+      </div>
+      <button class="save-artifact-btn" onclick="saveArtifact()">Save as Context Asset</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN WORKSPACE -->
+<div class="workspace" id="workspace">
+  <div class="canvas-content" id="canvasContent">
+
+    <!-- Metric Cards -->
+    <div class="canvas-block" id="block-metrics" style="animation-delay: 0ms">
+      <div class="block-header">
+        <span class="block-title">Q1 OKR Summary</span>
+        <div class="block-actions">
+          <button class="icon-btn" onclick="togglePin(this,'block-metrics')" title="Pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>
+          <button class="icon-btn" title="More"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+        </div>
+      </div>
+      <div class="block-content">
+        <div class="metrics-row">
+          <div class="metric-card"><div class="metric-label">On Track</div><div class="metric-value success">7</div><div class="metric-trend up"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>+2 vs Q4</div></div>
+          <div class="metric-card"><div class="metric-label">At Risk</div><div class="metric-value warning">3</div><div class="metric-trend down"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>+1 vs Q4</div></div>
+          <div class="metric-card"><div class="metric-label">Behind</div><div class="metric-value danger">2</div><div class="metric-trend flat">-- same</div></div>
+          <div class="metric-card"><div class="metric-label">Overall</div><div class="metric-value primary">72%</div><div class="metric-trend up"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>+8%</div></div>
+        </div>
+      </div>
+      <div class="block-footer">Source: Parthenon OKRs &middot; Updated 2h ago</div>
+    </div>
+
+    <!-- Chart -->
+    <div class="canvas-block" id="block-chart" style="animation-delay: 100ms">
+      <div class="block-header">
+        <span class="block-title">OKR Progress Over Time</span>
+        <div class="block-actions">
+          <button class="icon-btn" onclick="togglePin(this,'block-chart')" title="Pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>
+          <button class="icon-btn" title="More"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+        </div>
+      </div>
+      <div class="block-content"><div class="chart-area"><canvas class="chart-canvas" id="progressChart"></canvas></div></div>
+      <div class="block-footer">Source: Parthenon OKRs &middot; Updated 2h ago</div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="canvas-block" id="block-table" style="animation-delay: 200ms">
+      <div class="block-header">
+        <span class="block-title">At-Risk & Behind OKRs</span>
+        <div class="block-actions">
+          <button class="icon-btn" onclick="togglePin(this,'block-table')" title="Pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>
+          <button class="icon-btn" title="More"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+        </div>
+      </div>
+      <div class="block-content" style="padding:0; padding-bottom:var(--space-2)">
+        <table class="data-table">
+          <thead><tr><th>OKR</th><th>Status</th><th>Owner</th><th>Progress</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--text-primary);font-weight:500">Revenue Target: $2.4M</td><td><span class="status-badge at-risk">At Risk</span></td><td>Sales</td><td><div class="progress-bar-cell"><div class="progress-bar"><div class="progress-bar-fill warning" style="width:67%"></div></div><span style="font-size:0.7rem;color:var(--status-warning)">67%</span></div></td></tr>
+            <tr><td style="color:var(--text-primary);font-weight:500">NPS Score &ge; 75</td><td><span class="status-badge behind">Behind</span></td><td>Support</td><td><div class="progress-bar-cell"><div class="progress-bar"><div class="progress-bar-fill danger" style="width:45%"></div></div><span style="font-size:0.7rem;color:var(--status-danger)">45%</span></div></td></tr>
+            <tr><td style="color:var(--text-primary);font-weight:500">Onboarding &lt; 48h</td><td><span class="status-badge at-risk">At Risk</span></td><td>Ops</td><td><div class="progress-bar-cell"><div class="progress-bar"><div class="progress-bar-fill warning" style="width:58%"></div></div><span style="font-size:0.7rem;color:var(--status-warning)">58%</span></div></td></tr>
+            <tr><td style="color:var(--text-primary);font-weight:500">Agent Automation 60%</td><td><span class="status-badge at-risk">At Risk</span></td><td>Product</td><td><div class="progress-bar-cell"><div class="progress-bar"><div class="progress-bar-fill warning" style="width:52%"></div></div><span style="font-size:0.7rem;color:var(--status-warning)">52%</span></div></td></tr>
+            <tr><td style="color:var(--text-primary);font-weight:500">Retention 95%</td><td><span class="status-badge behind">Behind</span></td><td>HR</td><td><div class="progress-bar-cell"><div class="progress-bar"><div class="progress-bar-fill danger" style="width:38%"></div></div><span style="font-size:0.7rem;color:var(--status-danger)">38%</span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="block-footer">Source: Parthenon OKRs &middot; Updated 2h ago</div>
+    </div>
+
+    <!-- Narrative -->
+    <div class="canvas-block" id="block-narrative" style="animation-delay: 300ms">
+      <div class="block-header">
+        <span class="block-title">Analysis</span>
+        <div class="block-actions">
+          <button class="icon-btn" onclick="togglePin(this,'block-narrative')" title="Pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>
+          <button class="icon-btn" title="More"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+        </div>
+      </div>
+      <div class="block-content">
+        <div class="narrative-text"><strong>The primary risk is the revenue target.</strong> Sales is at 67% of the $2.4M quarterly goal with 3 weeks remaining. Current pipeline shows <span class="highlight">4 deals in Stage 3</span> totaling $412K. The gap requires either accelerating existing pipeline or a late-quarter push.<br><br><strong>NPS is the structural concern.</strong> At 45% progress toward 75, this reflects systemic friction in the support experience. The <span class="highlight">v3.79 release</span> correlated with a ticket spike.<br><br>Employee retention is behind at 38%, but this may be a measurement lag — HR typically updates monthly.</div>
+      </div>
+      <div class="block-footer"><span class="generated-dot"></span>Generated by Higgins &middot; Claude Opus &middot; Just now</div>
+    </div>
+  </div>
+
+  <footer class="site-footer" style="border-top: 1px solid var(--color-border-subtle); margin-top: var(--space-8);">
+    &copy; 2026 <a href="https://jbherrera.com" target="_blank" rel="noopener">JBHerrera.com</a> &nbsp;·&nbsp; Higgins 2.0 prototype &nbsp;·&nbsp; <a href="/">All AI tools</a>
+  </footer>
+</div>
+
+<!-- FLOATING HIGGINS CARD -->
+<div class="higgins-card" id="higginsCard">
+  <div class="resize-handle top" id="resizeTop"></div>
+  <div class="resize-handle right" id="resizeRight"></div>
+  <div class="resize-handle top-right" id="resizeTopRight"></div>
+
+  <div class="higgins-drag-bar" id="dragBar">
+    <div class="drag-pill"></div>
+  </div>
+
+  <div class="avatar-section">
+    <div class="higgins-avatar-container">
+      <div class="avatar-glow"></div>
+      <div class="avatar-3d">
+        <div class="avatar-face" id="avatarFace">
+          <div class="eye left"></div>
+          <div class="eye right"></div>
+          <div class="mouth"></div>
+        </div>
+      </div>
+      <div class="avatar-status-dot" id="statusDot"></div>
+    </div>
+    <div class="higgins-identity">
+      <div class="higgins-name">Higgins</div>
+      <div class="higgins-status-text" id="statusText">Ready to help</div>
+    </div>
+    <div class="card-header-actions">
+      <button class="icon-btn" onclick="openPalette()" title="Navigate (Cmd+K)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg></button>
+      <button class="icon-btn" onclick="toggleMode()" title="Minimize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
+    </div>
+  </div>
+
+  <div class="conversation-stream" id="conversationStream">
+    <div class="message user">
+      <div class="message-bubble">How are our Q1 OKRs tracking?</div>
+      <div class="message-meta">10:32 AM</div>
+    </div>
+    <div class="message agent">
+      <div class="message-bubble"><strong>7 OKRs on track</strong>, but <strong>3 at risk</strong> and <strong>2 behind</strong>. Overall completion is <strong>72%</strong> with 3 weeks left.<br><br>The revenue target in Sales is the primary concern at 67%. I've assembled the full breakdown on the canvas.</div>
+      <div class="message-meta">10:32 AM <span class="model-badge">Claude Opus</span></div>
+      <div class="quick-replies">
+        <button class="chip" onclick="handleChipClick(this,'Show breakdown by department')">By department</button>
+        <button class="chip" onclick="handleChipClick(this,'Export as PDF')">Export PDF</button>
+        <button class="chip" onclick="handleChipClick(this,'Which need attention?')">Need attention?</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="higgins-input-area">
+    <div class="voice-input-row" id="voiceInputRow">
+      <button class="mic-btn" id="micBtn" onclick="toggleListening()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+      </button>
+      <div class="voice-waveform" id="voiceWaveform"></div>
+      <div class="text-input-wrapper" id="textInputWrapper">
+        <textarea id="higginsInput" rows="1" placeholder="Type or press mic to speak..." oninput="autoGrow(this);toggleSend();" onkeydown="handleKeyDown(event)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="input-meta">
+      <span class="listening-label" id="listeningLabel"><span class="rec-dot"></span>Listening...</span>
+      <span id="inputHint">Shift+Enter for new line</span>
+      <span>Claude Opus 4.6</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================
+// CHART
+// ============================================
+function drawChart() {
+  const canvas = document.getElementById('progressChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.scale(dpr, dpr);
+  const w = rect.width, h = rect.height;
+  const pad = { top: 20, right: 20, bottom: 30, left: 40 };
+  const cw = w - pad.left - pad.right, ch = h - pad.top - pad.bottom;
+  const months = ['Oct','Nov','Dec','Jan','Feb','Mar'];
+  const data = { onTrack: [5,5,6,6,7,7], atRisk: [2,3,2,3,2,3], behind: [3,2,2,2,2,2] };
+
+  // Theme-aware colors — read from CSS vars at draw time
+  const cs = getComputedStyle(document.documentElement);
+  const grid    = cs.getPropertyValue('--color-border-subtle').trim() || '#e8e8ed';
+  const label   = cs.getPropertyValue('--color-text-tertiary').trim() || '#86868b';
+  const surface = cs.getPropertyValue('--color-surface').trim() || '#ffffff';
+  const cSuccess = cs.getPropertyValue('--color-success').trim() || '#34c759';
+  const cWarning = cs.getPropertyValue('--color-warning').trim() || '#ff9500';
+  const cDanger  = cs.getPropertyValue('--color-danger').trim()  || '#ff3b30';
+  const chartFont = '10px ' + (cs.getPropertyValue('--font-sans').trim() || 'system-ui, sans-serif');
+
+  ctx.strokeStyle = grid; ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) { const y = pad.top + (ch/4)*i; ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(w-pad.right,y); ctx.stroke(); }
+
+  ctx.fillStyle = label; ctx.font = chartFont; ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) ctx.fillText(Math.round(10-i*2.5), pad.left-6, pad.top+(ch/4)*i+3);
+  ctx.textAlign = 'center';
+  months.forEach((m,i) => ctx.fillText(m, pad.left+(cw/(months.length-1))*i, h-8));
+
+  function line(d, color) {
+    ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+    d.forEach((v,i) => { const x = pad.left+(cw/(d.length-1))*i, y = pad.top+ch-(v/10)*ch; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+    ctx.stroke();
+    d.forEach((v,i) => { const x = pad.left+(cw/(d.length-1))*i, y = pad.top+ch-(v/10)*ch; ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fillStyle=color; ctx.fill(); ctx.strokeStyle=surface; ctx.lineWidth=2; ctx.stroke(); });
+  }
+  line(data.onTrack, cSuccess); line(data.atRisk, cWarning); line(data.behind, cDanger);
+
+  let lx = w - pad.right;
+  ctx.textAlign = 'right'; ctx.font = chartFont;
+  [{l:'Behind',c:cDanger},{l:'At Risk',c:cWarning},{l:'On Track',c:cSuccess}].forEach(({l,c}) => {
+    const tw = ctx.measureText(l).width; ctx.fillStyle = c; ctx.fillText(l, lx, 12); lx -= tw+6; ctx.beginPath(); ctx.arc(lx,8,3,0,Math.PI*2); ctx.fill(); lx -= 14;
+  });
+}
+setTimeout(drawChart, 100);
+window.addEventListener('resize', drawChart);
+
+// ============================================
+// VOICE WAVEFORM
+// ============================================
+const waveform = document.getElementById('voiceWaveform');
+const barCount = 24;
+for (let i = 0; i < barCount; i++) { const b = document.createElement('div'); b.className = 'bar'; waveform.appendChild(b); }
+let waveInterval;
+function startWaveform() {
+  waveform.classList.add('active');
+  waveInterval = setInterval(() => {
+    waveform.querySelectorAll('.bar').forEach(b => { b.style.height = (3 + Math.random() * 22) + 'px'; });
+  }, 80);
+}
+function stopWaveform() {
+  clearInterval(waveInterval);
+  waveform.classList.remove('active');
+  waveform.querySelectorAll('.bar').forEach(b => { b.style.height = '3px'; });
+}
+
+// ============================================
+// VOICE INPUT
+// ============================================
+let isListening = false;
+function toggleListening() {
+  isListening = !isListening;
+  const btn = document.getElementById('micBtn');
+  const label = document.getElementById('listeningLabel');
+  const wrapper = document.getElementById('textInputWrapper');
+  const hint = document.getElementById('inputHint');
+  const face = document.getElementById('avatarFace');
+
+  if (isListening) {
+    btn.classList.add('listening');
+    label.classList.add('visible');
+    wrapper.style.display = 'none';
+    hint.style.display = 'none';
+    startWaveform();
+    setAgentState('listening', 'Listening...');
+
+    // Simulate voice recognition
+    setTimeout(() => {
+      if (!isListening) return;
+      toggleListening();
+      document.getElementById('higginsInput').value = 'Show breakdown by department';
+      toggleSend();
+      sendMessage();
+    }, 3000);
+  } else {
+    btn.classList.remove('listening');
+    label.classList.remove('visible');
+    wrapper.style.display = '';
+    hint.style.display = '';
+    stopWaveform();
+    setAgentState('ready', 'Ready to help');
+  }
+}
+
+// ============================================
+// MODE TOGGLE (minimize/restore)
+// ============================================
+let isMinimized = false;
+function toggleMode() {
+  isMinimized = !isMinimized;
+  document.getElementById('modeSwitch').classList.toggle('active', isMinimized);
+  document.getElementById('higginsCard').classList.toggle('minimized', isMinimized);
+  document.getElementById('ambientAvatar').classList.toggle('visible', isMinimized);
+}
+function restoreCard() {
+  isMinimized = false;
+  document.getElementById('modeSwitch').classList.remove('active');
+  document.getElementById('higginsCard').classList.remove('minimized');
+  document.getElementById('ambientAvatar').classList.remove('visible');
+}
+
+// ============================================
+// DRAG TO MOVE
+// ============================================
+const card = document.getElementById('higginsCard');
+const dragBar = document.getElementById('dragBar');
+let isDragging = false, dragStartX, dragStartY, cardStartX, cardStartY;
+
+dragBar.addEventListener('mousedown', e => {
+  isDragging = true;
+  const rect = card.getBoundingClientRect();
+  dragStartX = e.clientX; dragStartY = e.clientY;
+  cardStartX = rect.left; cardStartY = rect.top;
+  card.style.transition = 'none';
+  document.body.style.userSelect = 'none';
+  e.preventDefault();
+});
+
+document.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const dx = e.clientX - dragStartX, dy = e.clientY - dragStartY;
+  card.style.left = (cardStartX + dx) + 'px';
+  card.style.top = (cardStartY + dy) + 'px';
+  card.style.bottom = 'auto';
+  card.style.right = 'auto';
+});
+
+document.addEventListener('mouseup', () => {
+  if (isDragging) { isDragging = false; card.style.transition = ''; document.body.style.userSelect = ''; }
+});
+
+// ============================================
+// RESIZE CARD
+// ============================================
+function setupResize(handleEl, dirs) {
+  let startX, startY, startW, startH, startLeft, startTop;
+  handleEl.addEventListener('mousedown', e => {
+    e.preventDefault(); e.stopPropagation();
+    const rect = card.getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY;
+    startW = rect.width; startH = rect.height;
+    startLeft = rect.left; startTop = rect.top;
+    card.style.transition = 'none';
+    document.body.style.userSelect = 'none';
+
+    function onMove(e) {
+      const dx = e.clientX - startX, dy = e.clientY - startY;
+      if (dirs.includes('right')) card.style.width = Math.max(320, Math.min(560, startW + dx)) + 'px';
+      if (dirs.includes('top')) {
+        const newH = Math.max(380, startH - dy);
+        card.style.height = newH + 'px';
+        card.style.top = (startTop + startH - newH) + 'px';
+        card.style.bottom = 'auto';
+      }
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      card.style.transition = '';
+      document.body.style.userSelect = '';
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+setupResize(document.getElementById('resizeRight'), ['right']);
+setupResize(document.getElementById('resizeTop'), ['top']);
+setupResize(document.getElementById('resizeTopRight'), ['right','top']);
+
+// ============================================
+// COMMAND PALETTE
+// ============================================
+function openPalette() { document.getElementById('paletteScrim').classList.add('open'); document.getElementById('commandPalette').classList.add('open'); setTimeout(() => document.getElementById('paletteSearch').focus(), 100); }
+function closePalette() { document.getElementById('paletteScrim').classList.remove('open'); document.getElementById('commandPalette').classList.remove('open'); document.getElementById('paletteSearch').value = ''; filterPalette(''); }
+function filterPalette(q) { q = q.toLowerCase().trim(); document.querySelectorAll('.module-tile').forEach(t => t.style.display = (!q||t.dataset.name?.includes(q))?'':'none'); document.querySelectorAll('.recent-item,.suggestion-card').forEach(el => el.style.display = (!q||el.textContent.toLowerCase().includes(q))?'':'none'); }
+
+document.addEventListener('keydown', e => {
+  if ((e.metaKey||e.ctrlKey) && e.key === 'k') { e.preventDefault(); document.getElementById('commandPalette').classList.contains('open') ? closePalette() : openPalette(); }
+  if (e.key === 'Escape') closePalette();
+});
+if (navigator.platform.indexOf('Mac') === -1) document.getElementById('shortcutHint').textContent = 'Ctrl+K';
+
+// ============================================
+// INPUT HANDLING
+// ============================================
+function autoGrow(el) { el.style.height = '20px'; el.style.height = Math.min(el.scrollHeight, 80) + 'px'; }
+function toggleSend() { document.getElementById('sendBtn').classList.toggle('active', document.getElementById('higginsInput').value.trim().length > 0); }
+function handleKeyDown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+
+// ============================================
+// SEND / RESPOND
+// ============================================
+let responding = false;
+function sendMessage() {
+  const input = document.getElementById('higginsInput');
+  const text = input.value.trim();
+  if (!text || responding) return;
+  responding = true;
+  addMessage('user', text);
+  input.value = ''; autoGrow(input); toggleSend();
+  setAgentState('thinking', 'Analyzing your request...');
+  const face = document.getElementById('avatarFace');
+  face.classList.add('thinking');
+  const thinking = addThinkingIndicator();
+
+  setTimeout(() => {
+    thinking.remove();
+    face.classList.remove('thinking');
+    face.classList.add('speaking');
+    setAgentState('responding', 'Speaking...');
+
+    const resp = addMessage('agent',
+      'Here\'s the department-level breakdown. <strong>Sales is the primary concern</strong> at 54% — their 3 OKRs are dragging the overall score. Marketing and Product are healthy. Support needs attention on NPS specifically.'
+    );
+    const chips = document.createElement('div');
+    chips.className = 'quick-replies';
+    chips.innerHTML = '<button class="chip" onclick="handleChipClick(this,\'Drill into Sales\')">Drill into Sales</button><button class="chip" onclick="handleChipClick(this,\'Suggest recovery plan\')">Recovery plan</button>';
+    resp.appendChild(chips);
+
+    addDepartmentBlock();
+
+    setTimeout(() => { face.classList.remove('speaking'); setAgentState('ready', 'Ready to help'); }, 2000);
+    responding = false;
+  }, 2200);
+}
+
+function addMessage(role, html) {
+  const stream = document.getElementById('conversationStream');
+  const msg = document.createElement('div');
+  msg.className = `message ${role}`;
+  const time = new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  msg.innerHTML = role === 'agent'
+    ? `<div class="message-bubble">${html}</div><div class="message-meta">${time} <span class="model-badge">Claude Opus</span></div>`
+    : `<div class="message-bubble">${html}</div><div class="message-meta">${time}</div>`;
+  stream.appendChild(msg);
+  stream.scrollTop = stream.scrollHeight;
+  return msg;
+}
+
+function addThinkingIndicator() {
+  const stream = document.getElementById('conversationStream');
+  const el = document.createElement('div');
+  el.className = 'message agent';
+  el.innerHTML = '<div class="thinking-indicator"><div class="thinking-dots"><span></span><span></span><span></span></div><span class="thinking-text" id="thinkingText">Analyzing your request...</span></div>';
+  stream.appendChild(el);
+  stream.scrollTop = stream.scrollHeight;
+  setTimeout(() => { const t = document.getElementById('thinkingText'); if (t) t.textContent = 'Pulling department data from Parthenon...'; }, 1000);
+  return el;
+}
+
+function setAgentState(state, text) {
+  const dot = document.getElementById('statusDot');
+  const st = document.getElementById('statusText');
+  st.textContent = text;
+  dot.classList.toggle('thinking', state === 'thinking' || state === 'listening');
+  st.style.color = (state === 'thinking') ? 'var(--agent-thinking)' : 'var(--agent-accent)';
+}
+
+function handleChipClick(chip, text) {
+  chip.parentElement.style.opacity = '0';
+  setTimeout(() => chip.parentElement.remove(), 200);
+  document.getElementById('higginsInput').value = text;
+  sendMessage();
+}
+
+// ============================================
+// DYNAMIC CANVAS BLOCK
+// ============================================
+function addDepartmentBlock() {
+  const c = document.getElementById('canvasContent');
+  const id = 'block-dept-' + Date.now();
+  const block = document.createElement('div');
+  block.className = 'canvas-block'; block.id = id;
+  block.innerHTML = `
+    <div class="block-header"><span class="block-title">OKR Completion by Department</span><div class="block-actions"><button class="icon-btn" onclick="togglePin(this,'${id}')" title="Pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button><button class="icon-btn" title="More"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></div></div>
+    <div class="block-content"><div class="dept-breakdown">
+      <div class="dept-card"><div class="dept-name">Sales</div><div class="dept-score" style="color:var(--status-danger)">54%</div><div class="dept-bar"><div class="dept-bar-fill" style="width:54%;background:var(--status-danger)"></div></div></div>
+      <div class="dept-card"><div class="dept-name">Support</div><div class="dept-score" style="color:var(--status-warning)">62%</div><div class="dept-bar"><div class="dept-bar-fill" style="width:62%;background:var(--status-warning)"></div></div></div>
+      <div class="dept-card"><div class="dept-name">Operations</div><div class="dept-score" style="color:var(--status-warning)">68%</div><div class="dept-bar"><div class="dept-bar-fill" style="width:68%;background:var(--status-warning)"></div></div></div>
+      <div class="dept-card"><div class="dept-name">Product</div><div class="dept-score" style="color:var(--status-success)">79%</div><div class="dept-bar"><div class="dept-bar-fill" style="width:79%;background:var(--status-success)"></div></div></div>
+      <div class="dept-card"><div class="dept-name">Marketing</div><div class="dept-score" style="color:var(--status-success)">85%</div><div class="dept-bar"><div class="dept-bar-fill" style="width:85%;background:var(--status-success)"></div></div></div>
+      <div class="dept-card"><div class="dept-name">HR</div><div class="dept-score" style="color:var(--status-danger)">48%</div><div class="dept-bar"><div class="dept-bar-fill" style="width:48%;background:var(--status-danger)"></div></div></div>
+    </div></div>
+    <div class="block-footer"><span class="generated-dot"></span>Generated by Higgins &middot; Claude Opus &middot; Just now</div>`;
+  c.appendChild(block);
+  document.getElementById('workspace').scrollTo({ top: document.getElementById('workspace').scrollHeight, behavior: 'smooth' });
+}
+
+// ============================================
+// PIN + COMPOSE
+// ============================================
+let pinnedCount = 0;
+function togglePin(btn, blockId) {
+  const block = document.getElementById(blockId);
+  if (!block) return;
+  const isPinned = block.classList.toggle('pinned');
+  btn.classList.toggle('pinned', isPinned);
+  pinnedCount += isPinned ? 1 : -1;
+  document.getElementById('composeBtn').classList.toggle('visible', pinnedCount > 0);
+  showToast(isPinned ? 'Pinned to canvas' : 'Unpinned');
+}
+
+function openComposer() {
+  const preview = document.getElementById('composerPreview');
+  // Gather pinned blocks
+  const pinned = document.querySelectorAll('.canvas-block.pinned');
+  let blocks = '<h3>Q1 OKR Review &mdash; March 21, 2026</h3>';
+  pinned.forEach(b => {
+    const title = b.querySelector('.block-title')?.textContent || 'Untitled';
+    const content = b.querySelector('.block-content')?.innerHTML || '';
+    blocks += `<div class="composer-block"><div class="composer-block-label">${title}</div>${content}</div>`;
+  });
+  preview.innerHTML = blocks;
+  document.getElementById('composerOverlay').classList.add('open');
+}
+
+function closeComposer(e) {
+  if (e && e.target !== document.getElementById('composerOverlay')) return;
+  document.getElementById('composerOverlay').classList.remove('open');
+}
+
+function saveArtifact() {
+  document.getElementById('composerOverlay').classList.remove('open');
+  showToast('Artifact saved as Context Asset');
+}
+
+// ============================================
+// TOAST
+// ============================================
+function showToast(msg) {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>${msg}`;
+  c.appendChild(t);
+  setTimeout(() => { t.classList.add('leaving'); setTimeout(() => t.remove(), 200); }, 2500);
+}
+</script>
+
+<!-- Theme toggle: isolated so a runtime error in the main script can't break it -->
+<script>
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if (!btn) return;
+  btn.addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    if (typeof drawChart === 'function') drawChart();
+  });
+})();
+</script>
+</body>
+</html>

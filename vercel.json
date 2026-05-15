@@ -16,6 +16,7 @@
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/skills", "destination": "/skills.html" },
     { "source": "/ai-stack", "destination": "/ai-stack.html" },
+    { "source": "/higgins2", "destination": "/higgins2.html" },
     { "source": "/", "destination": "/index.html" }
   ]
 }
