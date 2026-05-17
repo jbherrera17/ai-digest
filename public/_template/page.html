@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAGE TITLE — AI.JBHerrera</title>
+    <meta name="description" content="ONE-SENTENCE DESCRIPTION."/>
+
+    <!-- Theme: set before paint to avoid light-flash for dark users -->
+    <script>
+      (function(){
+        var s = localStorage.getItem('theme');
+        var d = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', s || d);
+      })();
+    </script>
+
+    <link rel="stylesheet" href="/styles/base.css"/>
+
+    <style>
+        /* Page-specific styles only. Use var(--color-*) tokens — no hex literals. */
+    </style>
+</head>
+<body class="page-PAGESLUG">
+
+<!-- Nav (keep links in sync across every page; mark current with class="active") -->
+<nav class="navbar">
+  <a href="/" class="navbar-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M12 16v-4"></path>
+      <path d="M12 8h.01"></path>
+    </svg>
+    AI.JBHerrera
+  </a>
+  <div class="navbar-links">
+    <a href="/digest"          class="navbar-link">AI Digest</a>
+    <a href="/ai-stack"        class="navbar-link">AI Stack</a>
+    <a href="/skills"          class="navbar-link">Skills</a>
+    <a href="/higgins2"        class="navbar-link">Higgins 2.0</a>
+    <a href="/ca-bill-tracker" class="navbar-link">CA Bills</a>
+    <a href="https://jbherrera.com" class="navbar-link" target="_blank" rel="noopener">Main Site</a>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<header class="hero">
+    <div class="hero-tag">EYEBROW</div>
+    <h1 class="text-display">PAGE HEADLINE</h1>
+    <p>Subhead sentence describing what this tool does in one line.</p>
+</header>
+
+<!-- Main content -->
+<main class="container section">
+    <!-- Replace with page-specific content. Use .card, .btn, type-scale classes. -->
+</main>
+
+<!-- Footer -->
+<footer class="site-footer">
+    &copy; 2026 <a href="https://jbherrera.com" target="_blank" rel="noopener">JBHerrera.com</a> &nbsp;·&nbsp; AI tools for the independent professional
+</footer>
+
+<script>
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  });
+</script>
+
+</body>
+</html>
