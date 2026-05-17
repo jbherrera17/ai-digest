@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CA Legislative Intelligence — AI.JBHerrera</title>
+<meta name="description" content="California bill monitoring & communication strategy platform for values-driven business leaders. Prototype by Synergi AI."/>
+
+<script>
+  (function(){
+    var s = localStorage.getItem('theme');
+    var d = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', s || d);
+  })();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  html, body { margin: 0; padding: 0; background: #f8f7ff; }
+  body { font-family: 'Poppins', system-ui, -apple-system, sans-serif; }
+  #root { min-height: 100vh; }
+  #boot-fallback {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; color: #5b21b6; font-family: 'Poppins', sans-serif;
+    text-align: center; padding: 24px;
+  }
+  #boot-fallback .spinner {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 3px solid #ede9fe; border-top-color: #7c3aed;
+    animation: spin 0.9s linear infinite; margin-bottom: 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="root">
+  <div id="boot-fallback">
+    <div class="spinner"></div>
+    <div style="font-weight:600;font-size:14px;">Loading CA Legislative Intelligence…</div>
+    <div style="font-size:12px;color:#888;margin-top:6px;">If this hangs, check your network connection.</div>
+  </div>
+</div>
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel" src="/ca-bill-tracker.jsx" data-presets="react"></script>
+
+<script type="text/babel" data-presets="react">
+  const rootEl = document.getElementById('root');
+  const root = ReactDOM.createRoot(rootEl);
+  root.render(<CABillTracker />);
+</script>
+
+</body>
+</html>

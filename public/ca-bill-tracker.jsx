@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+const { useState, useEffect } = React;
 
 const ALL_TOPICS = [
   { id: "ai_automation", label: "Artificial Intelligence & Automation", icon: "🤖", category: "Technology" },
@@ -61,7 +61,7 @@ const URGENCY_COLOR = {
 
 const STAGE_COLOR = ["#e0e7ff","#ddd6fe","#c4b5fd","#a78bfa","#7c3aed"];
 
-export default function CABillTracker() {
+function CABillTracker() {
   const [selectedTopics, setSelectedTopics] = useState(["ai_automation","data_privacy","medical_ai","smb_support","workplace_ai","employment_law"]);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [filterUrgency, setFilterUrgency] = useState("all");
