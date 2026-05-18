@@ -96,7 +96,7 @@ def build_skill_entry(skill_dir: Path, scan_time: str) -> "dict | None":
         "name": name,
         "description": description,
         "department": department,
-        "category": None,
+        "category": "skill",
         "sourceId": SOURCE_ID,
         "sourceType": "synergi-original",       # v2: explicit
         "scope": "domain-generic",              # v2: per PRD §10 default for the 74
@@ -123,6 +123,80 @@ def build_skill_entry(skill_dir: Path, scan_time: str) -> "dict | None":
     }
 
 
+def _first_paragraph(body: str) -> str:
+    """Return the first non-heading paragraph from a markdown body, trimmed."""
+    for chunk in re.split(r"\n\s*\n", body.strip()):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        # Skip pure-heading chunks
+        if all(line.lstrip().startswith("#") for line in chunk.splitlines()):
+            continue
+        # Strip leading heading lines from a mixed chunk
+        lines = [ln for ln in chunk.splitlines() if not ln.lstrip().startswith("#")]
+        text = " ".join(ln.strip() for ln in lines if ln.strip())
+        if text:
+            return text[:300]
+    return ""
+
+
+def build_context_entries(shared_dir: Path, scan_time: str) -> list:
+    """Build registry entries for shared-context files inside a *-shared folder.
+
+    These are markdown files that skills link to (e.g.
+    biz-shared/synergi-business-context.md). They are distinct from skills —
+    no YAML frontmatter, no role definition — but they still need governance
+    because skill behavior depends on them. Tagged category='context-reference'.
+    """
+    if not shared_dir.name.endswith("-shared"):
+        return []
+
+    department = shared_dir.name.rsplit("-shared", 1)[0]
+    entries = []
+    for md_file in sorted(shared_dir.glob("*.md")):
+        content = md_file.read_text(encoding="utf-8")
+        content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+        stem = md_file.stem  # filename without extension
+
+        # Unique slug across folder + file (multiple files per shared folder allowed)
+        slug = f"{shared_dir.name}-{stem}"
+        name = stem.replace("-", " ").replace("_", " ").title()
+        description = _first_paragraph(content) or f"Shared {department} context referenced by {department}-* skills."
+
+        entries.append({
+            "id": f"{SOURCE_ID}/{slug}",
+            "slug": slug,
+            "name": name,
+            "description": description,
+            "department": department,
+            "category": "context-reference",
+            "sourceId": SOURCE_ID,
+            "sourceType": "synergi-original",
+            "scope": "domain-generic",
+            "filePath": f"{REPO_RELATIVE_PREFIX}/{shared_dir.name}/{md_file.name}",
+            "upstreamUrl": None,
+            "author": {"name": "Synergi AI"},
+            "license": "proprietary",
+            "originalPath": f"{shared_dir.name}/{md_file.name}",
+            "currentVersion": "1.0.0",
+            "versions": [
+                {
+                    "version": "1.0.0",
+                    "changedAt": scan_time,
+                    "changeType": "initial",
+                    "contentHash": content_hash,
+                }
+            ],
+            "isExpertSkill": False,
+            "isCoreSkill": True,
+            "hasCommand": False,
+            "keywords": [],
+            "discoveredAt": scan_time,
+            "lastCheckedAt": scan_time,
+        })
+    return entries
+
+
 def main() -> int:
     if not SKILLS_ROOT.is_dir():
         print(f"Skills root not found: {SKILLS_ROOT}", file=sys.stderr)
@@ -131,19 +205,28 @@ def main() -> int:
     scan_time = datetime.now(timezone.utc).isoformat()
 
     skills: "list[dict]" = []
+    context_entries: "list[dict]" = []
     skipped: "list[str]" = []
     for entry in sorted(SKILLS_ROOT.iterdir()):
         if not entry.is_dir():
             continue
-        # *-shared folders hold shared context for skill prompts, not skills themselves
         if entry.name.endswith("-shared"):
-            skipped.append(entry.name)
+            # Shared context files — different category, same registry table
+            shared_records = build_context_entries(entry, scan_time)
+            if not shared_records:
+                skipped.append(entry.name + " (no .md files)")
+                continue
+            context_entries.extend(shared_records)
             continue
         record = build_skill_entry(entry, scan_time)
         if record is None:
             skipped.append(entry.name + " (no SKILL.md)")
             continue
         skills.append(record)
+
+    # Combine skills + context entries — both go into skill_registry,
+    # the category field distinguishes them.
+    all_entries = skills + context_entries
 
     sources = [
         {
@@ -163,14 +246,18 @@ def main() -> int:
         "generatedAt": scan_time,
         "generatedBy": "ai-tools/scripts/backfill_skills.py",
         "sources": sources,
-        "skills": skills,
+        "skills": all_entries,
     }
 
     json.dump(registry, sys.stdout, indent=2)
     sys.stdout.write("\n")
 
     # Diagnostics on stderr so stdout stays clean JSON
-    print(f"# skills: {len(skills)}  sources: {len(sources)}  skipped: {len(skipped)}", file=sys.stderr)
+    print(
+        f"# skills: {len(skills)}  context-references: {len(context_entries)}  "
+        f"sources: {len(sources)}  skipped: {len(skipped)}",
+        file=sys.stderr,
+    )
     if skipped:
         print(f"# skipped folders: {', '.join(skipped)}", file=sys.stderr)
     return 0
