@@ -6,6 +6,7 @@
 <title>CA Legislative Intelligence — AI.JBHerrera</title>
 <meta name="description" content="California bill monitoring & communication strategy platform for values-driven business leaders. Prototype by Synergi AI."/>
 
+<!-- Theme: set before paint to avoid light-flash for dark users -->
 <script>
   (function(){
     var s = localStorage.getItem('theme');
@@ -14,36 +15,484 @@
   })();
 </script>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/base.css"/>
 
 <style>
-  html, body { margin: 0; padding: 0; background: #f8f7ff; }
-  body { font-family: 'Poppins', system-ui, -apple-system, sans-serif; }
-  #root { min-height: 100vh; }
-  #boot-fallback {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    min-height: 100vh; color: #5b21b6; font-family: 'Poppins', sans-serif;
-    text-align: center; padding: 24px;
-  }
-  #boot-fallback .spinner {
-    width: 28px; height: 28px; border-radius: 50%;
-    border: 3px solid #ede9fe; border-top-color: #7c3aed;
-    animation: spin 0.9s linear infinite; margin-bottom: 16px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+/* ============================================
+   CA BILL TRACKER — extends /styles/base.css
+   Page-scoped under body.page-bills.
+   ============================================ */
+.page-bills {
+  /* Accent palette for this page only */
+  --accent-bills: var(--color-secondary);
+  --accent-bills-soft: rgba(118, 75, 162, 0.10);
+  --accent-bills-strong: #5b21b6;
+
+  /* Synergi brand colors used as comm-type identity */
+  --bills-thought-leadership: #b78bd3;
+  --bills-client-alert: #77bde0;
+  --bills-legislative: #dc9171;
+}
+
+/* React boot fallback */
+.page-bills #boot-fallback {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 50vh; padding: var(--space-6);
+  text-align: center; color: var(--color-text-secondary);
+}
+.page-bills #boot-fallback .spinner {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 3px solid var(--color-border-subtle);
+  border-top-color: var(--color-primary);
+  animation: bills-spin 0.9s linear infinite;
+  margin-bottom: var(--space-3);
+}
+@keyframes bills-spin { to { transform: rotate(360deg); } }
+
+/* ── KPI row ── */
+.bills-kpi-row {
+  display: flex; gap: var(--space-3); flex-wrap: wrap;
+  justify-content: center;
+  margin-top: var(--space-5);
+}
+.bills-kpi {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 96px; padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+}
+.bills-kpi-value { font-size: 22px; font-weight: 700; line-height: 1; color: var(--color-text); }
+.bills-kpi-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.bills-kpi.high   .bills-kpi-value { color: var(--color-danger); }
+.bills-kpi.medium .bills-kpi-value { color: var(--color-warning); }
+.bills-kpi.low    .bills-kpi-value { color: var(--color-success); }
+.bills-kpi.topics .bills-kpi-value { color: var(--accent-bills); }
+
+/* ── Tabs ── */
+.bills-tabs {
+  display: flex; gap: 2px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--color-border-subtle);
+  margin-bottom: var(--space-6);
+}
+.bills-tab {
+  background: transparent; border: none; cursor: pointer;
+  padding: 12px 18px;
+  font-family: inherit; font-size: 14px; font-weight: 500;
+  color: var(--color-text-secondary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+.bills-tab:hover { color: var(--color-text); }
+.bills-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ── Pipeline stages ── */
+.bills-pipeline {
+  display: flex; gap: 2px;
+}
+.bills-pipeline-stage {
+  flex: 1; padding: var(--space-4) var(--space-3);
+  text-align: center;
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.bills-pipeline-stage:first-child { border-radius: var(--radius-md) 0 0 var(--radius-md); }
+.bills-pipeline-stage:last-child  { border-radius: 0 var(--radius-md) var(--radius-md) 0; }
+.bills-pipeline-stage[data-intensity="1"] { background: color-mix(in srgb, var(--accent-bills) 8%, var(--color-bg-secondary)); }
+.bills-pipeline-stage[data-intensity="2"] { background: color-mix(in srgb, var(--accent-bills) 18%, var(--color-bg-secondary)); }
+.bills-pipeline-stage[data-intensity="3"] { background: color-mix(in srgb, var(--accent-bills) 32%, var(--color-bg-secondary)); }
+.bills-pipeline-stage[data-intensity="4"] { background: color-mix(in srgb, var(--accent-bills) 55%, var(--color-bg-secondary)); color: #fff; }
+.bills-pipeline-stage[data-intensity="5"] { background: var(--accent-bills); color: #fff; }
+.bills-pipeline-count { font-size: 22px; font-weight: 700; line-height: 1; }
+.bills-pipeline-label { font-size: 11px; margin-top: 6px; line-height: 1.3; opacity: 0.85; }
+
+/* ── Bill cards ── */
+.bills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+.bills-card-row {
+  display: flex; flex-direction: column;
+  gap: var(--space-3);
+}
+.bills-bill-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  cursor: pointer;
+  transition: border-color var(--duration-fast), box-shadow var(--duration-fast), transform var(--duration-fast);
+}
+.bills-bill-card:hover {
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+.bills-bill-card.expanded {
+  border-color: var(--accent-bills);
+  box-shadow: var(--shadow-md);
+}
+.bills-bill-card.list-style {
+  cursor: default;
+  border-left: 4px solid var(--color-border);
+}
+.bills-bill-card.list-style:hover {
+  transform: none;
+  border-color: var(--color-border);
+}
+.bills-bill-card.list-style.urgency-high   { border-left-color: var(--color-danger); }
+.bills-bill-card.list-style.urgency-medium { border-left-color: var(--color-warning); }
+.bills-bill-card.list-style.urgency-low    { border-left-color: var(--color-success); }
+
+.bills-bill-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: var(--space-2); margin-bottom: var(--space-2);
+}
+.bills-bill-head-meta {
+  display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap;
+}
+.bills-bill-title {
+  font-size: 15px; font-weight: 600; line-height: 1.4;
+  color: var(--color-text); margin-bottom: var(--space-2);
+}
+.bills-bill-meta-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px; color: var(--color-text-secondary);
+  flex-wrap: wrap; gap: var(--space-2);
+}
+.bills-bill-expand {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+}
+.bills-bill-expand-meta {
+  font-size: 12px; color: var(--color-text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+/* ── Bill ID chip ── */
+.bills-id {
+  display: inline-flex; align-items: center;
+  background: var(--accent-bills-soft);
+  color: var(--accent-bills-strong);
+  font-size: 11px; font-weight: 700;
+  padding: 3px 10px; border-radius: var(--radius-full);
+  letter-spacing: 0.02em;
+}
+[data-theme="dark"] .bills-id { color: #c4b5fd; }
+
+/* ── Topic chips ── */
+.bills-topic-chips {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+.bills-topic-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--accent-bills-soft);
+  color: var(--accent-bills-strong);
+  font-size: 11px; padding: 3px 10px;
+  border-radius: var(--radius-full);
+}
+[data-theme="dark"] .bills-topic-chip { color: #c4b5fd; }
+
+/* ── Urgency badges (extend .badge) ── */
+.badge-urgency-high   { background: rgba(255,59,48,0.14); color: #b00d00; }
+[data-theme="dark"] .badge-urgency-high { color: #ff7a72; }
+.badge-urgency-medium { background: rgba(255,149,0,0.14); color: #b86b00; }
+[data-theme="dark"] .badge-urgency-medium { color: #ffb24d; }
+.badge-urgency-low    { background: rgba(52,199,89,0.14); color: #1f8a3d; }
+[data-theme="dark"] .badge-urgency-low    { color: #6ee49a; }
+
+/* ── Chamber chip ── */
+.bills-chamber {
+  display: inline-flex; align-items: center;
+  background: rgba(0,122,255,0.12); color: #0058b8;
+  font-size: 11px; padding: 3px 10px; border-radius: var(--radius-full);
+}
+[data-theme="dark"] .bills-chamber { color: #6ab0ff; }
+
+/* ── Category filter chips ── */
+.bills-cat-chips {
+  display: flex; gap: var(--space-2); align-items: center;
+  flex-wrap: wrap; margin-bottom: var(--space-4);
+}
+.bills-cat-chip {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  border: none; cursor: pointer;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  padding: 6px 14px; border-radius: var(--radius-full);
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+.bills-cat-chip:hover { color: var(--color-text); }
+.bills-cat-chip.active {
+  background: var(--accent-bills);
+  color: #fff;
+}
+.bills-cat-search {
+  margin-left: auto;
+  width: 200px;
+}
+
+/* ── Topic grid ── */
+.bills-topic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-2);
+}
+.bills-topic-tile {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: background var(--duration-fast), border-color var(--duration-fast);
+}
+.bills-topic-tile:hover { background: var(--color-surface-hover); }
+.bills-topic-tile.selected {
+  background: var(--accent-bills-soft);
+  border-color: var(--accent-bills);
+}
+.bills-check {
+  width: 18px; height: 18px; border-radius: 5px;
+  border: 2px solid var(--color-border);
+  background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  color: transparent;
+  font-size: 11px; font-weight: 700;
+  transition: background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast);
+}
+.bills-topic-tile.selected .bills-check {
+  background: var(--accent-bills);
+  border-color: var(--accent-bills);
+  color: #fff;
+}
+.bills-topic-icon { font-size: 18px; line-height: 1; }
+.bills-topic-label-strong {
+  font-size: 13px; font-weight: 500;
+  color: var(--color-text); line-height: 1.35;
+}
+.bills-topic-tile.selected .bills-topic-label-strong { font-weight: 600; color: var(--accent-bills-strong); }
+[data-theme="dark"] .bills-topic-tile.selected .bills-topic-label-strong { color: #c4b5fd; }
+.bills-topic-cat {
+  font-size: 11px; color: var(--color-text-tertiary);
+}
+
+/* ── Selected topics pill row ── */
+.bills-selected-panel {
+  background: var(--accent-bills-soft);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-top: var(--space-4);
+}
+.bills-selected-pills {
+  display: flex; gap: var(--space-2); flex-wrap: wrap;
+}
+.bills-selected-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent-bills); color: #fff;
+  font-size: 12px; font-weight: 500;
+  padding: 4px 12px; border-radius: var(--radius-full);
+}
+.bills-selected-pill button {
+  background: transparent; border: none; color: rgba(255,255,255,0.8);
+  cursor: pointer; padding: 0; margin-left: 2px;
+  font-size: 14px; line-height: 1;
+}
+.bills-selected-pill button:hover { color: #fff; }
+
+/* ── Filter bar ── */
+.bills-filter-bar {
+  display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap;
+}
+.bills-filter-bar .input,
+.bills-filter-bar .select {
+  width: auto; flex: 0 1 auto;
+  padding: 8px 12px; font-size: 14px;
+}
+.bills-filter-bar .input.search {
+  flex: 1 1 240px; min-width: 200px;
+}
+.bills-filter-count {
+  margin-left: auto;
+  font-size: 13px; color: var(--color-text-secondary);
+}
+
+/* ── Comm strategy ── */
+.bills-comms-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: var(--space-5);
+}
+@media (max-width: 900px) {
+  .bills-comms-layout { grid-template-columns: 1fr; }
+}
+.bills-comms-side {
+  display: flex; flex-direction: column; gap: var(--space-4);
+}
+.bills-pick-item {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+  background: var(--color-bg-secondary);
+  cursor: pointer;
+  margin-bottom: var(--space-2);
+  transition: border-color var(--duration-fast), background var(--duration-fast);
+}
+.bills-pick-item:hover { background: var(--color-surface-hover); }
+.bills-pick-item.selected {
+  border-color: var(--accent-bills);
+  background: var(--accent-bills-soft);
+}
+.bills-pick-head {
+  display: flex; justify-content: space-between;
+  margin-bottom: 4px;
+}
+.bills-pick-id { font-size: 12px; font-weight: 700; color: var(--accent-bills-strong); }
+[data-theme="dark"] .bills-pick-id { color: #c4b5fd; }
+.bills-pick-title { font-size: 12px; color: var(--color-text-secondary); line-height: 1.4; }
+
+.bills-comm-template-card { margin-bottom: var(--space-4); }
+.bills-template-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: var(--space-3); margin-bottom: var(--space-4);
+}
+.bills-template-body {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  font-family: var(--font-mono);
+  font-size: 13px; line-height: 1.7;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  max-height: 380px; overflow-y: auto;
+}
+
+/* ── Cadence matrix ── */
+.bills-cadence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+.bills-cadence-tile {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+.bills-cadence-phase {
+  font-size: 11px; font-weight: 700;
+  color: var(--accent-bills-strong);
+  margin-bottom: 6px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+[data-theme="dark"] .bills-cadence-phase { color: #c4b5fd; }
+.bills-cadence-action { font-size: 13px; color: var(--color-text); margin-bottom: 4px; }
+.bills-cadence-meta { font-size: 12px; color: var(--color-text-secondary); }
+
+/* ── Sources grid ── */
+.bills-sources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+.bills-source-tile {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+.bills-source-icon { font-size: 22px; margin-bottom: 6px; }
+.bills-source-name { font-size: 13px; font-weight: 600; color: var(--color-text); margin-bottom: 2px; }
+.bills-source-desc { font-size: 12px; color: var(--color-text-secondary); margin-bottom: var(--space-3); }
+
+/* ── Section header inside cards ── */
+.bills-card-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: var(--space-3); margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+.bills-card-header h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.bills-card-header p  { font-size: 13px; color: var(--color-text-secondary); margin-top: 2px; }
+
+/* ── Empty state ── */
+.bills-empty {
+  text-align: center; padding: var(--space-10) var(--space-5);
+  color: var(--color-text-secondary);
+}
+.bills-empty-icon { font-size: 44px; margin-bottom: var(--space-3); }
+.bills-empty h3 { font-size: 18px; font-weight: 600; color: var(--color-text); margin-bottom: 6px; }
+
+/* ── Tighter card padding inside the React surface ── */
+.page-bills .card { padding: var(--space-5); }
+.page-bills .card + .card { margin-top: var(--space-4); }
 </style>
 </head>
-<body>
+<body class="page-bills">
 
-<div id="root">
-  <div id="boot-fallback">
-    <div class="spinner"></div>
-    <div style="font-weight:600;font-size:14px;">Loading CA Legislative Intelligence…</div>
-    <div style="font-size:12px;color:#888;margin-top:6px;">If this hangs, check your network connection.</div>
+<!-- Nav -->
+<nav class="navbar">
+  <a href="/" class="navbar-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M12 16v-4"></path>
+      <path d="M12 8h.01"></path>
+    </svg>
+    AI.JBHerrera
+  </a>
+  <div class="navbar-links">
+    <a href="/digest"          class="navbar-link">AI Digest</a>
+    <a href="/ai-stack"        class="navbar-link">AI Stack</a>
+    <a href="/skills"          class="navbar-link">Skills</a>
+    <a href="/higgins2"        class="navbar-link">Higgins 2.0</a>
+    <a href="/ca-bill-tracker" class="navbar-link active">CA Bills</a>
+    <a href="https://jbherrera.com" class="navbar-link" target="_blank" rel="noopener">Main Site</a>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="icon-sun"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
   </div>
-</div>
+</nav>
+
+<!-- Hero -->
+<header class="hero">
+  <div class="hero-tag">Prototype · Synergi AI</div>
+  <h1 class="text-display">CA Legislative Intelligence</h1>
+  <p>Track California bills by topic, score urgency, and generate communication strategy templates for values-driven business leaders.</p>
+</header>
+
+<!-- React app surface -->
+<main class="container section">
+  <div id="root">
+    <div id="boot-fallback">
+      <div class="spinner"></div>
+      <div style="font-weight:600;font-size:14px;">Loading CA Legislative Intelligence…</div>
+      <div style="font-size:12px;margin-top:6px;">If this hangs, check your network connection.</div>
+    </div>
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="site-footer">
+  &copy; 2026 <a href="https://jbherrera.com" target="_blank" rel="noopener">JBHerrera.com</a> &nbsp;·&nbsp; AI tools for the independent professional
+</footer>
+
+<script>
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  });
+</script>
 
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
