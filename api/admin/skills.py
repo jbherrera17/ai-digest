@@ -15,15 +15,18 @@ from lib.supabase import (
 
 
 def verify_admin_token(headers):
-    """Verify admin authentication token."""
+    """Verify admin authentication token.
+
+    Short-circuits to True when ADMIN_API_TOKEN is unset (dev / open mode).
+    When the token is set, requires Authorization: Bearer <token> matching exactly.
+    """
+    admin_token = os.environ.get('ADMIN_API_TOKEN', '')
+    if not admin_token:
+        return True  # Dev/open mode — no token configured
     auth_header = headers.get('Authorization', '')
     if not auth_header.startswith('Bearer '):
         return False
-    token = auth_header[7:]
-    admin_token = os.environ.get('ADMIN_API_TOKEN', '')
-    if not admin_token:
-        return True
-    return token == admin_token
+    return auth_header[7:] == admin_token
 
 
 class handler(BaseHTTPRequestHandler):
