@@ -36,3 +36,6 @@ AIDevelopment/venv/
 
 # Local-only working directories
 MyAgentSkills/
+
+# Temp file from 'vercel env pull' — contains secrets, never commit
+.env.vercel*
