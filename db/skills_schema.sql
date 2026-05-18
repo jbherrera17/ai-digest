@@ -1,19 +1,81 @@
--- Skills Registry Tables
--- Run in Supabase SQL Editor after the main schema.sql
+-- ============================================
+-- Skills Registry — v2 (governance layer)
+-- Per REQ-001: ai-tools/requests/REQ-001-skills-governance-layer.md
+-- Replaces v1 (git history preserves the prior schema).
+--
+-- Safe to apply to current production state (verified 2026-05-18):
+-- existing skill_versions / skill_sources / skill_matches tables are
+-- empty, and skill_registry / skill_adoptions do not yet exist.
+-- Run in Supabase SQL Editor.
+-- ============================================
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ── updated_at trigger function (defensive) ──
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ── Drop prior types and tables (production verified empty) ──
+DROP VIEW IF EXISTS skill_stats CASCADE;
+DROP VIEW IF EXISTS skill_match_stats CASCADE;
+DROP VIEW IF EXISTS skill_version_stats CASCADE;
+DROP TABLE IF EXISTS skill_adoptions CASCADE;
+DROP TABLE IF EXISTS skill_matches CASCADE;
+DROP TABLE IF EXISTS skill_versions CASCADE;
+DROP TABLE IF EXISTS skill_registry CASCADE;
+DROP TABLE IF EXISTS skill_sources CASCADE;
+DROP TYPE IF EXISTS skill_source_type CASCADE;
+DROP TYPE IF EXISTS skill_origin CASCADE;
+DROP TYPE IF EXISTS skill_scope CASCADE;
+DROP TYPE IF EXISTS review_status CASCADE;
 
 -- ============================================
--- SKILL SOURCES TABLE
+-- ENUMS
+-- ============================================
+CREATE TYPE skill_source_type AS ENUM (
+  'core',          -- Synergi-owned source (e.g. core-synergi)
+  'expert-repo',   -- External curated repo (e.g. pm-skills fork)
+  'passthrough'    -- Track upstream; we do not maintain a copy
+);
+
+CREATE TYPE skill_origin AS ENUM (
+  'synergi-original',         -- We author + maintain
+  'anthropic-derived',        -- Sourced from Anthropic releases
+  'open-source-passthrough'   -- External, tracked as reference
+);
+
+CREATE TYPE skill_scope AS ENUM (
+  'universal',          -- Useful in any repo / project
+  'domain-generic',     -- Generic within a domain (i360, biz, etc.)
+  'project-specific'    -- Lives inside a single project repo
+);
+
+CREATE TYPE review_status AS ENUM (
+  'approved',
+  'pending',
+  'rejected'
+);
+
+-- ============================================
+-- SKILL SOURCES
+-- One row per origin (Synergi core, PM-skills fork, Anthropic feed, etc.)
 -- ============================================
 CREATE TABLE skill_sources (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   source_key TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('core', 'expert-repo')),
+  type skill_source_type NOT NULL,
   author_name TEXT,
   author_email TEXT,
   author_url TEXT,
   license TEXT,
   repo_url TEXT,
+  upstream_url TEXT,         -- For tracking external sources
   department TEXT,
   last_scanned_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -21,49 +83,87 @@ CREATE TABLE skill_sources (
 );
 
 -- ============================================
--- SKILL REGISTRY TABLE
+-- SKILL REGISTRY
+-- One row per skill (the canonical metadata record)
 -- ============================================
 CREATE TABLE skill_registry (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  skill_id TEXT NOT NULL UNIQUE,
-  slug TEXT NOT NULL,
+  skill_id TEXT NOT NULL UNIQUE,           -- e.g. 'core-synergi/biz-finance'
+  slug TEXT NOT NULL,                       -- e.g. 'biz-finance'
   name TEXT NOT NULL,
   description TEXT,
-  department TEXT,
+  department TEXT,                          -- Parsed from slug prefix
   category TEXT,
   source_id UUID REFERENCES skill_sources(id) ON DELETE CASCADE,
+
+  -- New axes per REQ-001 §10 (decisions closed 2026-05-18)
+  source_type skill_origin NOT NULL DEFAULT 'synergi-original',
+  scope skill_scope NOT NULL DEFAULT 'domain-generic',
+
+  file_path TEXT,                           -- Repo-relative, e.g. '.agents/skills/biz-finance'
+  upstream_url TEXT,                        -- For pass-through skills
+
   author_name TEXT,
   license TEXT,
-  original_path TEXT,
-  current_version TEXT DEFAULT '1.0.0',
-  versions JSONB DEFAULT '[]'::jsonb,
-  content_hash TEXT,
-  is_expert_skill BOOLEAN DEFAULT false,
-  is_core_skill BOOLEAN DEFAULT false,
+  current_version TEXT DEFAULT '1.0.0',     -- Points at the currently promoted version
+  content_hash TEXT,                        -- Hash of the current version's content
   has_command BOOLEAN DEFAULT false,
   keywords TEXT[] DEFAULT '{}',
+
   discovered_at TIMESTAMPTZ,
   last_checked_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_skill_registry_source ON skill_registry(source_id);
-CREATE INDEX idx_skill_registry_dept ON skill_registry(department);
-CREATE INDEX idx_skill_registry_type ON skill_registry(is_expert_skill, is_core_skill);
-CREATE INDEX idx_skill_registry_keywords ON skill_registry USING GIN(keywords);
+CREATE INDEX idx_skill_registry_source       ON skill_registry(source_id);
+CREATE INDEX idx_skill_registry_dept         ON skill_registry(department);
+CREATE INDEX idx_skill_registry_source_type  ON skill_registry(source_type);
+CREATE INDEX idx_skill_registry_scope        ON skill_registry(scope);
+CREATE INDEX idx_skill_registry_keywords     ON skill_registry USING GIN(keywords);
 
 -- ============================================
--- SKILL MATCHES TABLE
+-- SKILL VERSIONS
+-- One row per (skill, version) — the review-gated lifecycle table.
+-- Promoted from the JSONB array in v1 per REQ-001 §8.
+-- ============================================
+CREATE TABLE skill_versions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  skill_id UUID NOT NULL REFERENCES skill_registry(id) ON DELETE CASCADE,
+  version TEXT NOT NULL,                    -- e.g. '1.0.0'
+  content_hash TEXT NOT NULL,
+  change_type TEXT,                         -- 'initial' | 'patch' | 'minor' | 'major'
+
+  review_status review_status NOT NULL DEFAULT 'pending',
+  reviewer_notes TEXT,
+  reviewed_at TIMESTAMPTZ,
+  reviewed_by TEXT,
+
+  discovered_at TIMESTAMPTZ DEFAULT now(),
+  promoted_at TIMESTAMPTZ,                  -- When this version became current
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(skill_id, version)
+);
+
+CREATE INDEX idx_skill_versions_skill   ON skill_versions(skill_id);
+CREATE INDEX idx_skill_versions_status  ON skill_versions(review_status);
+
+-- ============================================
+-- SKILL MATCHES
+-- Pairs proposed by the matching engine (Phase 2).
+-- 'new_version' = candidate is a new version of an existing skill
+-- 'duplicate'   = candidate is the same skill from another source
+-- 'similar'     = related but distinct
 -- ============================================
 CREATE TABLE skill_matches (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  expert_skill_id UUID REFERENCES skill_registry(id) ON DELETE CASCADE,
-  core_skill_slug TEXT NOT NULL,
+  candidate_skill_id UUID REFERENCES skill_registry(id) ON DELETE CASCADE,
+  matched_skill_id   UUID REFERENCES skill_registry(id) ON DELETE CASCADE,
   match_type TEXT,
   confidence NUMERIC(5,4) DEFAULT 0,
   reasoning TEXT,
-  review_status TEXT DEFAULT 'pending' CHECK (review_status IN ('pending', 'approved', 'rejected', 'override')),
+  review_status review_status NOT NULL DEFAULT 'pending',
   reviewer_notes TEXT,
   reviewed_at TIMESTAMPTZ,
   reviewed_by TEXT,
@@ -71,23 +171,25 @@ CREATE TABLE skill_matches (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_skill_matches_expert ON skill_matches(expert_skill_id);
-CREATE INDEX idx_skill_matches_status ON skill_matches(review_status);
-CREATE UNIQUE INDEX idx_skill_matches_pair ON skill_matches(expert_skill_id, core_skill_slug);
+CREATE INDEX idx_skill_matches_candidate ON skill_matches(candidate_skill_id);
+CREATE INDEX idx_skill_matches_matched   ON skill_matches(matched_skill_id);
+CREATE INDEX idx_skill_matches_status    ON skill_matches(review_status);
+CREATE UNIQUE INDEX idx_skill_matches_pair ON skill_matches(candidate_skill_id, matched_skill_id);
 
 -- ============================================
--- SKILL ADOPTIONS TABLE
+-- SKILL ADOPTIONS
+-- Log of skills that have been adopted (made available to consumers).
 -- ============================================
 CREATE TABLE skill_adoptions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  expert_skill_id UUID REFERENCES skill_registry(id) ON DELETE CASCADE,
+  skill_id UUID REFERENCES skill_registry(id) ON DELETE CASCADE,
   adopted_at TIMESTAMPTZ DEFAULT now(),
   adopted_version TEXT,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_skill_adoptions_expert ON skill_adoptions(expert_skill_id);
+CREATE INDEX idx_skill_adoptions_skill ON skill_adoptions(skill_id);
 
 -- ============================================
 -- TRIGGERS
@@ -100,45 +202,65 @@ CREATE TRIGGER skill_registry_updated_at
   BEFORE UPDATE ON skill_registry
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+CREATE TRIGGER skill_versions_updated_at
+  BEFORE UPDATE ON skill_versions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
 CREATE TRIGGER skill_matches_updated_at
   BEFORE UPDATE ON skill_matches
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- ============================================
 -- ROW LEVEL SECURITY
+-- Public read everything; service role full access for writes.
 -- ============================================
-ALTER TABLE skill_sources ENABLE ROW LEVEL SECURITY;
-ALTER TABLE skill_registry ENABLE ROW LEVEL SECURITY;
-ALTER TABLE skill_matches ENABLE ROW LEVEL SECURITY;
-ALTER TABLE skill_adoptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE skill_sources    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE skill_registry   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE skill_versions   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE skill_matches    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE skill_adoptions  ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Public read skill_sources" ON skill_sources FOR SELECT USING (true);
-CREATE POLICY "Public read skill_registry" ON skill_registry FOR SELECT USING (true);
-CREATE POLICY "Public read skill_matches" ON skill_matches FOR SELECT USING (true);
-CREATE POLICY "Public read skill_adoptions" ON skill_adoptions FOR SELECT USING (true);
+CREATE POLICY "Public read skill_sources"    ON skill_sources    FOR SELECT USING (true);
+CREATE POLICY "Public read skill_registry"   ON skill_registry   FOR SELECT USING (true);
+CREATE POLICY "Public read skill_versions"   ON skill_versions   FOR SELECT USING (true);
+CREATE POLICY "Public read skill_matches"    ON skill_matches    FOR SELECT USING (true);
+CREATE POLICY "Public read skill_adoptions"  ON skill_adoptions  FOR SELECT USING (true);
 
-CREATE POLICY "Service full access skill_sources" ON skill_sources FOR ALL USING (true);
-CREATE POLICY "Service full access skill_registry" ON skill_registry FOR ALL USING (true);
-CREATE POLICY "Service full access skill_matches" ON skill_matches FOR ALL USING (true);
-CREATE POLICY "Service full access skill_adoptions" ON skill_adoptions FOR ALL USING (true);
+CREATE POLICY "Service full access skill_sources"    ON skill_sources    FOR ALL USING (true);
+CREATE POLICY "Service full access skill_registry"   ON skill_registry   FOR ALL USING (true);
+CREATE POLICY "Service full access skill_versions"   ON skill_versions   FOR ALL USING (true);
+CREATE POLICY "Service full access skill_matches"    ON skill_matches    FOR ALL USING (true);
+CREATE POLICY "Service full access skill_adoptions"  ON skill_adoptions  FOR ALL USING (true);
 
 -- ============================================
 -- VIEWS
+-- Drive the dashboard tiles on /skills.
 -- ============================================
 CREATE VIEW skill_stats AS
 SELECT
-  COUNT(*) as total_skills,
-  COUNT(*) FILTER (WHERE is_core_skill) as core_skills,
-  COUNT(*) FILTER (WHERE is_expert_skill) as expert_skills,
-  COUNT(*) FILTER (WHERE has_command) as command_skills,
-  COUNT(DISTINCT department) as departments
+  COUNT(*)                                                       AS total_skills,
+  COUNT(*) FILTER (WHERE source_type = 'synergi-original')       AS synergi_skills,
+  COUNT(*) FILTER (WHERE source_type = 'anthropic-derived')      AS anthropic_skills,
+  COUNT(*) FILTER (WHERE source_type = 'open-source-passthrough') AS opensource_skills,
+  COUNT(*) FILTER (WHERE scope = 'universal')                    AS universal_skills,
+  COUNT(*) FILTER (WHERE scope = 'domain-generic')               AS domain_skills,
+  COUNT(*) FILTER (WHERE scope = 'project-specific')             AS project_skills,
+  COUNT(*) FILTER (WHERE has_command)                            AS command_skills,
+  COUNT(DISTINCT department)                                     AS departments
 FROM skill_registry;
+
+CREATE VIEW skill_version_stats AS
+SELECT
+  COUNT(*)                                              AS total_versions,
+  COUNT(*) FILTER (WHERE review_status = 'pending')     AS pending_reviews,
+  COUNT(*) FILTER (WHERE review_status = 'approved')    AS approved,
+  COUNT(*) FILTER (WHERE review_status = 'rejected')    AS rejected
+FROM skill_versions;
 
 CREATE VIEW skill_match_stats AS
 SELECT
-  COUNT(*) as total_matches,
-  COUNT(*) FILTER (WHERE review_status = 'pending') as pending_reviews,
-  COUNT(*) FILTER (WHERE review_status = 'approved') as approved,
-  COUNT(*) FILTER (WHERE review_status = 'rejected') as rejected,
-  COUNT(*) FILTER (WHERE review_status = 'override') as overrides
+  COUNT(*)                                              AS total_matches,
+  COUNT(*) FILTER (WHERE review_status = 'pending')     AS pending_reviews,
+  COUNT(*) FILTER (WHERE review_status = 'approved')    AS approved,
+  COUNT(*) FILTER (WHERE review_status = 'rejected')    AS rejected
 FROM skill_matches;

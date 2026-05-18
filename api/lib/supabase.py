@@ -7,7 +7,9 @@ from supabase import create_client, Client
 # Set these in Vercel environment variables or .env file
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
 SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY', '')
-SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
+# Vercel's Supabase integration provisions SUPABASE_SERVICE_ROLE_KEY;
+# fall back to SUPABASE_SERVICE_KEY for local dev / older configs.
+SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or os.environ.get('SUPABASE_SERVICE_KEY', '')
 
 
 def get_supabase_client(use_service_key=False) -> Client:
@@ -246,21 +248,51 @@ def get_all_settings():
 
 
 # ============================================
-# Skills Registry Operations
+# Skills Registry Operations (v2 — REQ-001 schema)
 # ============================================
+#
+# Schema model:
+#   skill_sources   — one row per origin (Synergi core, PM-skills fork, …)
+#   skill_registry  — one row per skill (canonical metadata)
+#   skill_versions  — one row per (skill, version) with review lifecycle
+#   skill_matches   — candidate→matched pairs from the matching engine
+#   skill_adoptions — log of adopted skills
+#
+# UI backward-compat: get_all_skills() and get_skill_stats() return
+# legacy aliases (is_core_skill, is_expert_skill, core_skills, expert_skills)
+# alongside the new fields so /skills.html keeps working until Phase 3.
+
+# Map source_type values (new) to the legacy is_core/is_expert booleans (old)
+_LEGACY_CORE_TYPES = {'synergi-original'}
+
+
+def _add_legacy_skill_aliases(skill):
+    """Decorate a registry row with the deprecated is_core_skill / is_expert_skill flags."""
+    if not skill:
+        return skill
+    is_core = skill.get('source_type') in _LEGACY_CORE_TYPES
+    skill['is_core_skill'] = is_core
+    skill['is_expert_skill'] = not is_core
+    return skill
+
 
 def get_all_skills(filters=None):
-    """Get all skills from registry, optionally filtered."""
+    """Get all skills from registry, optionally filtered. Adds legacy aliases for UI compat."""
     client = get_public_client()
     query = client.table('skill_registry').select('*').order('department').order('name')
 
     if filters:
         if filters.get('department'):
             query = query.eq('department', filters['department'])
+        if filters.get('source_type'):
+            query = query.eq('source_type', filters['source_type'])
+        if filters.get('scope'):
+            query = query.eq('scope', filters['scope'])
+        # Legacy 'type' filter — translate to source_type
         if filters.get('type') == 'core':
-            query = query.eq('is_core_skill', True)
+            query = query.eq('source_type', 'synergi-original')
         elif filters.get('type') == 'expert':
-            query = query.eq('is_expert_skill', True)
+            query = query.neq('source_type', 'synergi-original')
         if filters.get('source'):
             query = query.eq('source_id', filters['source'])
         if filters.get('search'):
@@ -268,7 +300,7 @@ def get_all_skills(filters=None):
             query = query.or_(f"name.ilike.%{term}%,description.ilike.%{term}%,slug.ilike.%{term}%")
 
     response = query.execute()
-    return response.data
+    return [_add_legacy_skill_aliases(s) for s in response.data]
 
 
 def get_skill_sources():
@@ -281,7 +313,9 @@ def get_skill_sources():
 def get_skill_matches(status=None):
     """Get skill matches, optionally filtered by review status."""
     client = get_public_client()
-    query = client.table('skill_matches').select('*, expert:expert_skill_id(*)').order('confidence', desc=True)
+    query = client.table('skill_matches').select(
+        '*, candidate:candidate_skill_id(*), matched:matched_skill_id(*)'
+    ).order('confidence', desc=True)
 
     if status:
         query = query.eq('review_status', status)
@@ -291,42 +325,61 @@ def get_skill_matches(status=None):
 
 
 def get_unmatched_expert_skills():
-    """Get expert skills that have no approved match (new skill suggestions)."""
+    """Get non-Synergi skills with no approved match or adoption record."""
     client = get_public_client()
-    all_expert = client.table('skill_registry').select('*').eq('is_expert_skill', True).order('name').execute()
-    adopted = client.table('skill_adoptions').select('expert_skill_id').execute()
-    adopted_ids = {a['expert_skill_id'] for a in adopted.data}
-    matched = client.table('skill_matches').select('expert_skill_id').eq('review_status', 'approved').execute()
-    matched_ids = {m['expert_skill_id'] for m in matched.data}
+    all_external = client.table('skill_registry').select('*').neq('source_type', 'synergi-original').order('name').execute()
+    adopted = client.table('skill_adoptions').select('skill_id').execute()
+    adopted_ids = {a['skill_id'] for a in adopted.data if a.get('skill_id')}
+    matched = client.table('skill_matches').select('candidate_skill_id').eq('review_status', 'approved').execute()
+    matched_ids = {m['candidate_skill_id'] for m in matched.data if m.get('candidate_skill_id')}
 
     excluded = adopted_ids | matched_ids
-    return [s for s in all_expert.data if s['id'] not in excluded]
+    return [_add_legacy_skill_aliases(s) for s in all_external.data if s['id'] not in excluded]
 
 
 def get_skill_stats():
-    """Get dashboard stats for skills registry."""
+    """Get dashboard stats for skills registry. Reads from v2 views, adds legacy aliases."""
     client = get_public_client()
 
-    skills = client.table('skill_registry').select('is_core_skill,is_expert_skill', count='exact').execute()
-    core = sum(1 for s in skills.data if s['is_core_skill'])
-    expert = sum(1 for s in skills.data if s['is_expert_skill'])
+    skill_stats = client.table('skill_stats').select('*').execute()
+    s = skill_stats.data[0] if skill_stats.data else {}
 
-    matches = client.table('skill_matches').select('review_status', count='exact').execute()
-    pending = sum(1 for m in matches.data if m['review_status'] == 'pending')
-    approved = sum(1 for m in matches.data if m['review_status'] == 'approved')
-    rejected = sum(1 for m in matches.data if m['review_status'] == 'rejected')
+    version_stats = client.table('skill_version_stats').select('*').execute()
+    v = version_stats.data[0] if version_stats.data else {}
+
+    match_stats = client.table('skill_match_stats').select('*').execute()
+    m = match_stats.data[0] if match_stats.data else {}
 
     adoptions = client.table('skill_adoptions').select('id', count='exact').execute()
+    adoption_count = adoptions.count if adoptions.count is not None else len(adoptions.data)
+
+    synergi = s.get('synergi_skills', 0) or 0
+    anthropic = s.get('anthropic_skills', 0) or 0
+    opensource = s.get('opensource_skills', 0) or 0
 
     return {
-        'total_skills': skills.count or len(skills.data),
-        'core_skills': core,
-        'expert_skills': expert,
-        'total_matches': matches.count or len(matches.data),
-        'pending_reviews': pending,
-        'approved': approved,
-        'rejected': rejected,
-        'adoptions': len(adoptions.data),
+        # New v2 fields
+        'total_skills': s.get('total_skills', 0) or 0,
+        'synergi_skills': synergi,
+        'anthropic_skills': anthropic,
+        'opensource_skills': opensource,
+        'universal_skills': s.get('universal_skills', 0) or 0,
+        'domain_skills': s.get('domain_skills', 0) or 0,
+        'project_skills': s.get('project_skills', 0) or 0,
+        'departments': s.get('departments', 0) or 0,
+        'pending_version_reviews': v.get('pending_reviews', 0) or 0,
+        'approved_versions': v.get('approved', 0) or 0,
+        'rejected_versions': v.get('rejected', 0) or 0,
+        'total_matches': m.get('total_matches', 0) or 0,
+        'pending_match_reviews': m.get('pending_reviews', 0) or 0,
+        'adoptions': adoption_count,
+
+        # Legacy aliases for /skills.html UI (deprecated, remove in Phase 3)
+        'core_skills': synergi,
+        'expert_skills': anthropic + opensource,
+        'pending_reviews': v.get('pending_reviews', 0) or 0,
+        'approved': m.get('approved', 0) or 0,
+        'rejected': m.get('rejected', 0) or 0,
     }
 
 
@@ -344,6 +397,7 @@ def upsert_skill_sources(sources):
             'author_url': s.get('author', {}).get('url'),
             'license': s.get('license'),
             'repo_url': s.get('repoUrl'),
+            'upstream_url': s.get('upstreamUrl'),
             'department': s.get('department'),
             'last_scanned_at': s.get('lastScannedAt'),
         })
@@ -352,10 +406,24 @@ def upsert_skill_sources(sources):
 
 
 def upsert_skills(skills, source_map):
-    """Upsert skills from registry sync. source_map: {source_key: source_uuid}."""
+    """Upsert skills from registry sync. source_map: {source_key: source_uuid}.
+
+    Translates the updater's JSON registry into the v2 skill_registry schema.
+    Inputs that the updater doesn't yet emit (sourceType, scope, filePath, upstreamUrl)
+    fall back to safe defaults — synergi-original / domain-generic / null.
+    """
     client = get_admin_client()
     rows = []
     for s in skills:
+        # Derive source_type: explicit override wins, else infer from isCoreSkill flag
+        source_type = s.get('sourceType')
+        if not source_type:
+            source_type = 'synergi-original' if s.get('isCoreSkill') else 'open-source-passthrough'
+
+        latest_hash = None
+        if s.get('versions'):
+            latest_hash = s['versions'][-1].get('contentHash')
+
         rows.append({
             'skill_id': s['id'],
             'slug': s['slug'],
@@ -364,14 +432,14 @@ def upsert_skills(skills, source_map):
             'department': s.get('department'),
             'category': s.get('category'),
             'source_id': source_map.get(s['sourceId']),
+            'source_type': source_type,
+            'scope': s.get('scope', 'domain-generic'),
+            'file_path': s.get('filePath') or s.get('originalPath'),
+            'upstream_url': s.get('upstreamUrl'),
             'author_name': s.get('author', {}).get('name'),
             'license': s.get('license'),
-            'original_path': s.get('originalPath'),
             'current_version': s.get('currentVersion', '1.0.0'),
-            'versions': s.get('versions', []),
-            'content_hash': s.get('versions', [{}])[-1].get('contentHash') if s.get('versions') else None,
-            'is_expert_skill': s.get('isExpertSkill', False),
-            'is_core_skill': s.get('isCoreSkill', False),
+            'content_hash': latest_hash,
             'has_command': s.get('hasCommand', False),
             'keywords': s.get('keywords', []),
             'discovered_at': s.get('discoveredAt'),
@@ -385,27 +453,77 @@ def upsert_skills(skills, source_map):
     return synced
 
 
+def upsert_skill_versions(skills, skill_id_map):
+    """Populate skill_versions from each skill's versions[] array.
+
+    The current version of each skill is marked 'approved' (per REQ-001 §10
+    decision: backfilled skills land as auto-approved). All other versions
+    land as 'pending' for explicit review.
+    """
+    client = get_admin_client()
+    rows = []
+    for s in skills:
+        skill_uuid = skill_id_map.get(s['id'])
+        if not skill_uuid:
+            continue
+        current = s.get('currentVersion', '1.0.0')
+        for v in s.get('versions', []):
+            is_current = v.get('version') == current
+            rows.append({
+                'skill_id': skill_uuid,
+                'version': v['version'],
+                'content_hash': v.get('contentHash', ''),
+                'change_type': v.get('changeType'),
+                'review_status': 'approved' if is_current else 'pending',
+                'discovered_at': v.get('changedAt'),
+                'promoted_at': v.get('changedAt') if is_current else None,
+            })
+    synced = 0
+    for i in range(0, len(rows), 100):
+        batch = rows[i:i+100]
+        response = client.table('skill_versions').upsert(batch, on_conflict='skill_id,version').execute()
+        synced += len(response.data)
+    return synced
+
+
 def upsert_skill_matches(match_results, skill_id_map):
-    """Upsert match results. skill_id_map: {skill_id_text: uuid}. Preserves reviewed matches."""
+    """Upsert match results into v2 skill_matches schema (candidate↔matched UUIDs).
+
+    skill_id_map: {skill_id_text: uuid}. Preserves reviewed matches.
+    Accepts both legacy (expertSkillId / coreSkillSlug) and v2 (candidateSkillId /
+    matchedSkillId) match shapes for now — the matching engine in Phase 2 will
+    standardize on v2.
+    """
     client = get_admin_client()
 
-    existing = client.table('skill_matches').select('expert_skill_id,core_skill_slug,review_status').neq('review_status', 'pending').execute()
-    reviewed_pairs = {(r['expert_skill_id'], r['core_skill_slug']) for r in existing.data}
+    # Build slug -> uuid map for legacy coreSkillSlug translation
+    all_skills = client.table('skill_registry').select('id,slug').execute()
+    slug_to_uuid = {s['slug']: s['id'] for s in all_skills.data}
+
+    existing = client.table('skill_matches').select(
+        'candidate_skill_id,matched_skill_id,review_status'
+    ).neq('review_status', 'pending').execute()
+    reviewed_pairs = {(r['candidate_skill_id'], r['matched_skill_id']) for r in existing.data}
 
     rows = []
     for m in match_results:
-        expert_uuid = skill_id_map.get(m['expertSkillId'])
-        if not expert_uuid:
+        # v2 shape preferred; fall back to legacy field names
+        candidate_uuid = (
+            m.get('candidateSkillId')
+            or skill_id_map.get(m.get('expertSkillId'))
+        )
+        matched_uuid = (
+            m.get('matchedSkillId')
+            or slug_to_uuid.get(m.get('coreSkillSlug'))
+        )
+        if not candidate_uuid or not matched_uuid:
             continue
-        core_slug = m.get('coreSkillSlug')
-        if not core_slug:
-            continue
-        if (expert_uuid, core_slug) in reviewed_pairs:
+        if (candidate_uuid, matched_uuid) in reviewed_pairs:
             continue
 
         rows.append({
-            'expert_skill_id': expert_uuid,
-            'core_skill_slug': core_slug,
+            'candidate_skill_id': candidate_uuid,
+            'matched_skill_id': matched_uuid,
             'match_type': m.get('matchType'),
             'confidence': m.get('confidence', 0),
             'reasoning': m.get('reasoning', ''),
@@ -416,7 +534,7 @@ def upsert_skill_matches(match_results, skill_id_map):
         return 0
 
     response = client.table('skill_matches').upsert(
-        rows, on_conflict='expert_skill_id,core_skill_slug'
+        rows, on_conflict='candidate_skill_id,matched_skill_id'
     ).execute()
     return len(response.data)
 
@@ -434,10 +552,11 @@ def update_match_review(match_id, data):
 
 
 def create_skill_adoption(data):
-    """Create a skill adoption record."""
+    """Create a skill adoption record. Accepts new skill_id or legacy expert_skill_id."""
     client = get_admin_client()
+    skill_uuid = data.get('skill_id') or data.get('expert_skill_id')
     response = client.table('skill_adoptions').insert({
-        'expert_skill_id': data['expert_skill_id'],
+        'skill_id': skill_uuid,
         'adopted_version': data.get('adopted_version'),
         'notes': data.get('notes', ''),
     }).execute()

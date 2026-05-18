@@ -8,8 +8,8 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from lib.supabase import (
-    upsert_skill_sources, upsert_skills, upsert_skill_matches,
-    update_match_review, create_skill_adoption,
+    upsert_skill_sources, upsert_skills, upsert_skill_versions,
+    upsert_skill_matches, update_match_review, create_skill_adoption,
     get_skill_sources, get_all_skills
 )
 
@@ -134,11 +134,14 @@ class handler(BaseHTTPRequestHandler):
         # Step 3: Upsert skills
         skills_synced = upsert_skills(data['skills'], source_map)
 
-        # Step 4: Build skill_id -> UUID map for matches
+        # Step 4: Build skill_id -> UUID map for downstream upserts
         db_skills = get_all_skills()
         skill_id_map = {s['skill_id']: s['id'] for s in db_skills}
 
-        # Step 5: Upsert matches (preserving reviewed ones)
+        # Step 5: Upsert skill_versions (v2 schema — promoted from JSONB)
+        versions_synced = upsert_skill_versions(data['skills'], skill_id_map)
+
+        # Step 6: Upsert matches (preserving reviewed ones)
         matches_synced = 0
         if data.get('matchResults'):
             matches_synced = upsert_skill_matches(data['matchResults'], skill_id_map)
@@ -146,5 +149,6 @@ class handler(BaseHTTPRequestHandler):
         self.send_json({
             'sources_synced': sources_synced,
             'skills_synced': skills_synced,
+            'versions_synced': versions_synced,
             'matches_synced': matches_synced,
         })
