@@ -1,4 +1,6 @@
-# REQ-002 — Skill Dependency Tracking
+# REQ-003 — Skill Dependency Tracking
+
+> _Renumbered from REQ-002 → REQ-003 on 2026-05-19. REQ-002 is reserved for `higgins2-chat-artifacts`._
 
 **Owner:** JB Herrera
 **Drafted by:** Higgins
@@ -19,7 +21,7 @@ The skills in `.agents/skills/` reference each other and reference shared contex
 
 When `biz-shared/synergi-business-context.md` changes, every skill that links to it is effectively a new version — its referenced material has shifted. But the registry doesn't know this. The Sunday cron only sees the changed file in isolation; it can't tell the curator "this single change affects 8 other skills."
 
-REQ-001's Phase 1 backfill registered the 8 shared context files as `category='context-reference'` so the cron will detect their changes. **REQ-002 closes the second half of that loop: make the dependency graph explicit, so a review of one entry knows what else it touches.**
+REQ-001's Phase 1 backfill registered the 8 shared context files as `category='context-reference'` so the cron will detect their changes. **REQ-003 closes the second half of that loop: make the dependency graph explicit, so a review of one entry knows what else it touches.**
 
 ## 2. Strategic intent
 
@@ -60,7 +62,7 @@ Same audience as REQ-001 — no new users.
 - **Multi-hop impact analysis.** If A → B → C, changing C only surfaces B as directly affected. Transitive reach can be computed at query time on existing edges if needed; not baked into the table.
 - **Reference-style markdown links** (`[text][ref]` + `[ref]: path` block). Inline-only for v1; reference-style is rare in the current corpus.
 - **External URLs and HTTP links.** Not registry dependencies, skipped.
-- **Dependency surfacing in `/skills.html` UI.** That's Phase 3 of REQ-001 (curator UX polish). REQ-002 ships the data; UI consumes it later.
+- **Dependency surfacing in `/skills.html` UI.** That's Phase 3 of REQ-001 (curator UX polish). REQ-003 ships the data; UI consumes it later.
 - **Cross-source dependencies** (a Synergi-original linking to a pm-skills passthrough). Resolves the same way; just noted that the table can hold heterogeneous source pairs.
 
 ## 7. MVP cut
@@ -198,7 +200,7 @@ All five resolved per JB's approval of the original recommendations:
 
 ## Appendix A — Why this matters for REQ-001's success metrics
 
-REQ-001 §4 set a curator review target of <90 seconds per skill. Without dependency tracking, that target is unachievable: a reviewer can't validate a `biz-shared` change in <90s if they don't know it affects 8 other skills. REQ-002 is the structural enabler.
+REQ-001 §4 set a curator review target of <90 seconds per skill. Without dependency tracking, that target is unachievable: a reviewer can't validate a `biz-shared` change in <90s if they don't know it affects 8 other skills. REQ-003 is the structural enabler.
 
 ## Appendix B — Expected edge count after first run
 

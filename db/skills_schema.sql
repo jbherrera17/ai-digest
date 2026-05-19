@@ -1,12 +1,12 @@
 -- ============================================
 -- Skills Registry — v2 (governance layer)
 -- Per REQ-001: ai-tools/requests/REQ-001-skills-governance-layer.md
--- + REQ-002 additions: ai-tools/requests/REQ-002-skill-dependency-tracking.md
+-- + REQ-003 additions: ai-tools/requests/REQ-003-skill-dependency-tracking.md
 --
 -- This file is the canonical "fresh-start" representation of the schema.
 -- For incremental application to an existing DB, use db/migrations/*.sql.
 --
--- Applied to production: 2026-05-18 (REQ-001 v2), 2026-05-19 (REQ-002 deps).
+-- Applied to production: 2026-05-18 (REQ-001 v2), 2026-05-19 (REQ-003 deps).
 -- Run in Supabase SQL Editor or via psql.
 -- ============================================
 
@@ -196,7 +196,7 @@ CREATE TABLE skill_adoptions (
 CREATE INDEX idx_skill_adoptions_skill ON skill_adoptions(skill_id);
 
 -- ============================================
--- SKILL DEPENDENCIES (REQ-002)
+-- SKILL DEPENDENCIES (REQ-003)
 -- Edges: (skill_id depends on depends_on_id). Standard DAG convention.
 -- One row per markdown link from one registry entry to another.
 -- ============================================

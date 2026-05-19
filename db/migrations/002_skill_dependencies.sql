@@ -1,6 +1,9 @@
 -- ============================================
 -- Migration 002 — Skill Dependency Tracking
--- Per REQ-002: ai-tools/requests/REQ-002-skill-dependency-tracking.md
+-- Per REQ-003: ai-tools/requests/REQ-003-skill-dependency-tracking.md
+-- (REQ originally drafted as REQ-002; renumbered to REQ-003 on 2026-05-19
+--  to avoid collision with REQ-002 higgins2-chat-artifacts. Migration file
+--  number is independent and stays at 002 — sequential order of DB changes.)
 --
 -- Purely additive — no changes to existing tables. Safe to apply
 -- against the live REQ-001 schema (skill_registry already has 74 rows).
