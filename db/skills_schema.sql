@@ -1,12 +1,13 @@
 -- ============================================
 -- Skills Registry — v2 (governance layer)
 -- Per REQ-001: ai-tools/requests/REQ-001-skills-governance-layer.md
--- Replaces v1 (git history preserves the prior schema).
+-- + REQ-002 additions: ai-tools/requests/REQ-002-skill-dependency-tracking.md
 --
--- Safe to apply to current production state (verified 2026-05-18):
--- existing skill_versions / skill_sources / skill_matches tables are
--- empty, and skill_registry / skill_adoptions do not yet exist.
--- Run in Supabase SQL Editor.
+-- This file is the canonical "fresh-start" representation of the schema.
+-- For incremental application to an existing DB, use db/migrations/*.sql.
+--
+-- Applied to production: 2026-05-18 (REQ-001 v2), 2026-05-19 (REQ-002 deps).
+-- Run in Supabase SQL Editor or via psql.
 -- ============================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -21,9 +22,12 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ── Drop prior types and tables (production verified empty) ──
+DROP VIEW IF EXISTS skill_dependent_count CASCADE;
+DROP VIEW IF EXISTS skill_dependency_graph CASCADE;
 DROP VIEW IF EXISTS skill_stats CASCADE;
 DROP VIEW IF EXISTS skill_match_stats CASCADE;
 DROP VIEW IF EXISTS skill_version_stats CASCADE;
+DROP TABLE IF EXISTS skill_dependencies CASCADE;
 DROP TABLE IF EXISTS skill_adoptions CASCADE;
 DROP TABLE IF EXISTS skill_matches CASCADE;
 DROP TABLE IF EXISTS skill_versions CASCADE;
@@ -192,6 +196,27 @@ CREATE TABLE skill_adoptions (
 CREATE INDEX idx_skill_adoptions_skill ON skill_adoptions(skill_id);
 
 -- ============================================
+-- SKILL DEPENDENCIES (REQ-002)
+-- Edges: (skill_id depends on depends_on_id). Standard DAG convention.
+-- One row per markdown link from one registry entry to another.
+-- ============================================
+CREATE TABLE skill_dependencies (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  skill_id      UUID NOT NULL REFERENCES skill_registry(id) ON DELETE CASCADE,
+  depends_on_id UUID NOT NULL REFERENCES skill_registry(id) ON DELETE CASCADE,
+  link_text TEXT,
+  link_target TEXT,
+  link_kind TEXT NOT NULL DEFAULT 'inline-markdown',
+  resolved_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(skill_id, depends_on_id)
+);
+
+CREATE INDEX idx_skill_deps_skill      ON skill_dependencies(skill_id);
+CREATE INDEX idx_skill_deps_depends_on ON skill_dependencies(depends_on_id);
+
+-- ============================================
 -- TRIGGERS
 -- ============================================
 CREATE TRIGGER skill_sources_updated_at
@@ -210,27 +235,34 @@ CREATE TRIGGER skill_matches_updated_at
   BEFORE UPDATE ON skill_matches
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+CREATE TRIGGER skill_dependencies_updated_at
+  BEFORE UPDATE ON skill_dependencies
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
 -- ============================================
 -- ROW LEVEL SECURITY
 -- Public read everything; service role full access for writes.
 -- ============================================
-ALTER TABLE skill_sources    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE skill_registry   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE skill_versions   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE skill_matches    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE skill_adoptions  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE skill_sources       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE skill_registry      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE skill_versions      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE skill_matches       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE skill_adoptions     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE skill_dependencies  ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Public read skill_sources"    ON skill_sources    FOR SELECT USING (true);
-CREATE POLICY "Public read skill_registry"   ON skill_registry   FOR SELECT USING (true);
-CREATE POLICY "Public read skill_versions"   ON skill_versions   FOR SELECT USING (true);
-CREATE POLICY "Public read skill_matches"    ON skill_matches    FOR SELECT USING (true);
-CREATE POLICY "Public read skill_adoptions"  ON skill_adoptions  FOR SELECT USING (true);
+CREATE POLICY "Public read skill_sources"       ON skill_sources       FOR SELECT USING (true);
+CREATE POLICY "Public read skill_registry"      ON skill_registry      FOR SELECT USING (true);
+CREATE POLICY "Public read skill_versions"      ON skill_versions      FOR SELECT USING (true);
+CREATE POLICY "Public read skill_matches"       ON skill_matches       FOR SELECT USING (true);
+CREATE POLICY "Public read skill_adoptions"     ON skill_adoptions     FOR SELECT USING (true);
+CREATE POLICY "Public read skill_dependencies"  ON skill_dependencies  FOR SELECT USING (true);
 
-CREATE POLICY "Service full access skill_sources"    ON skill_sources    FOR ALL USING (true);
-CREATE POLICY "Service full access skill_registry"   ON skill_registry   FOR ALL USING (true);
-CREATE POLICY "Service full access skill_versions"   ON skill_versions   FOR ALL USING (true);
-CREATE POLICY "Service full access skill_matches"    ON skill_matches    FOR ALL USING (true);
-CREATE POLICY "Service full access skill_adoptions"  ON skill_adoptions  FOR ALL USING (true);
+CREATE POLICY "Service full access skill_sources"       ON skill_sources       FOR ALL USING (true);
+CREATE POLICY "Service full access skill_registry"      ON skill_registry      FOR ALL USING (true);
+CREATE POLICY "Service full access skill_versions"      ON skill_versions      FOR ALL USING (true);
+CREATE POLICY "Service full access skill_matches"       ON skill_matches       FOR ALL USING (true);
+CREATE POLICY "Service full access skill_adoptions"     ON skill_adoptions     FOR ALL USING (true);
+CREATE POLICY "Service full access skill_dependencies"  ON skill_dependencies  FOR ALL USING (true);
 
 -- ============================================
 -- VIEWS
@@ -264,3 +296,32 @@ SELECT
   COUNT(*) FILTER (WHERE review_status = 'approved')    AS approved,
   COUNT(*) FILTER (WHERE review_status = 'rejected')    AS rejected
 FROM skill_matches;
+
+-- skill_dependency_graph: one row per edge, with both ends' metadata.
+CREATE VIEW skill_dependency_graph AS
+SELECT
+  d.id                    AS edge_id,
+  d.skill_id,
+  s.slug                  AS skill_slug,
+  s.name                  AS skill_name,
+  s.department            AS skill_department,
+  d.depends_on_id,
+  t.slug                  AS depends_on_slug,
+  t.name                  AS depends_on_name,
+  t.department            AS depends_on_department,
+  t.category              AS depends_on_category,
+  d.link_kind,
+  d.link_text,
+  d.link_target,
+  d.resolved_at
+FROM skill_dependencies d
+JOIN skill_registry s ON s.id = d.skill_id
+JOIN skill_registry t ON t.id = d.depends_on_id;
+
+-- skill_dependent_count: how many things depend on each entry — drives blast-radius indicators.
+CREATE VIEW skill_dependent_count AS
+SELECT
+  d.depends_on_id,
+  COUNT(*) AS dependent_count
+FROM skill_dependencies d
+GROUP BY d.depends_on_id;
