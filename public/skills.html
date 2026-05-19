@@ -549,7 +549,7 @@
 
     // State
     let authToken = localStorage.getItem('skills_admin_token') || '';
-    let isReadOnly = false;
+    let isReadOnly = false;   // toggled true only on a 401 from a write
     let skills = [];
     let matches = [];
     let suggestions = [];
@@ -576,7 +576,16 @@
         loadDashboard();
     }
 
-    if (authToken) showApp();
+    function showAuthScreen() {
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('authScreen').style.display = 'flex';
+    }
+
+    // Production has ADMIN_API_TOKEN unset (open dev mode), so the
+    // gate is unnecessary by default. Auto-enter the app; if any write
+    // returns 401 later, apiAdmin() flips to read-only and surfaces the
+    // gate so the user can drop in a token.
+    showApp();
 
     async function apiPublic(endpoint) {
         const response = await fetch(`/api/skills/${endpoint}`);
@@ -593,6 +602,11 @@
         if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
         const response = await fetch(`/api/admin/skills/${endpoint}`, { ...options, headers });
+        if (response.status === 401) {
+            isReadOnly = true;
+            showAuthScreen();
+            throw new Error('Auth required — please sign in');
+        }
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'API Error');
         return data;
@@ -623,13 +637,13 @@
     function renderStats() {
         const grid = document.getElementById('statsGrid');
         grid.innerHTML = `
-            <div class="stat-card"><div class="label">Total Skills</div><div class="value primary">${stats.total_skills || 0}</div></div>
-            <div class="stat-card"><div class="label">Core Skills</div><div class="value">${stats.core_skills || 0}</div></div>
-            <div class="stat-card"><div class="label">Expert Skills</div><div class="value">${stats.expert_skills || 0}</div></div>
-            <div class="stat-card"><div class="label">Pending Reviews</div><div class="value warning">${stats.pending_reviews || 0}</div></div>
+            <div class="stat-card"><div class="label">Total Entries</div><div class="value primary">${stats.total_skills || 0}</div></div>
+            <div class="stat-card"><div class="label">Skills</div><div class="value">${stats.skill_entries || 0}</div></div>
+            <div class="stat-card"><div class="label">Context Refs</div><div class="value">${stats.context_entries || 0}</div></div>
+            <div class="stat-card"><div class="label">Departments</div><div class="value">${stats.departments || 0}</div></div>
+            <div class="stat-card"><div class="label">Dependencies</div><div class="value">${stats.dependencies || 0}</div></div>
+            <div class="stat-card"><div class="label">Pending Matches</div><div class="value warning">${stats.pending_match_reviews || 0}</div></div>
             <div class="stat-card"><div class="label">Approved Matches</div><div class="value success">${stats.approved || 0}</div></div>
-            <div class="stat-card"><div class="label">Rejected</div><div class="value danger">${stats.rejected || 0}</div></div>
-            <div class="stat-card"><div class="label">Total Matches</div><div class="value">${stats.total_matches || 0}</div></div>
             <div class="stat-card"><div class="label">Adopted</div><div class="value success">${stats.adoptions || 0}</div></div>
         `;
     }
@@ -686,7 +700,7 @@
 
     function renderMatchTabs() {
         const counts = { '': matches.length };
-        ['pending', 'approved', 'rejected', 'override'].forEach(s => {
+        ['pending', 'approved', 'rejected'].forEach(s => {
             counts[s] = matches.filter(m => m.review_status === s).length;
         });
         const tabs = document.getElementById('matchTabs');
@@ -695,7 +709,6 @@
             { key: 'pending', label: 'Pending' },
             { key: 'approved', label: 'Approved' },
             { key: 'rejected', label: 'Rejected' },
-            { key: 'override', label: 'Override' },
         ].map(t => `
             <div class="status-tab ${currentMatchFilter === t.key ? 'active' : ''}"
                  onclick="currentMatchFilter='${t.key}';loadMatches()">
@@ -704,35 +717,49 @@
         `).join('');
     }
 
+    function matchTypeColor(type) {
+        if (type === 'duplicate')   return 'badge-danger';   // strongest signal
+        if (type === 'new_version') return 'badge-warning';  // re-version candidate
+        return 'badge-info';                                  // 'similar'
+    }
+
     function renderMatches() {
         document.getElementById('matchesCount').textContent = `${matches.length} matches`;
         const list = document.getElementById('matchesList');
 
         if (!matches.length) {
-            list.innerHTML = '<div class="card" style="text-align:center;color:var(--color-text-tertiary)">No matches found. Sync registry data first.</div>';
+            list.innerHTML = '<div class="card" style="text-align:center;color:var(--color-text-tertiary)">No matches in this view. Run a sync to populate.</div>';
             return;
         }
 
         list.innerHTML = matches.map(m => {
-            const expert = m.expert || {};
+            const candidate = m.candidate || {};
+            const matched   = m.matched   || {};
             const conf = Math.round((m.confidence || 0) * 100);
-            const confColor = conf >= 60 ? 'var(--color-success)' : conf >= 30 ? 'var(--color-warning)' : 'var(--color-danger)';
+            const confColor = conf >= 80 ? 'var(--color-success)' : conf >= 50 ? 'var(--color-warning)' : 'var(--color-danger)';
+            const matchBadge = matchTypeColor(m.match_type);
 
             return `
             <div class="match-card status-${m.review_status}">
                 <div class="match-grid">
                     <div class="match-skill">
-                        <span class="badge badge-success">Expert</span>
-                        <h4>${escapeHtml(expert.name || m.expert_skill_id)}</h4>
-                        <p>${escapeHtml((expert.description || '').slice(0, 150))}</p>
-                        <div class="match-meta">${escapeHtml(expert.department || '')} &middot; ${escapeHtml(expert.author_name || '')}</div>
+                        <span class="badge badge-primary">Candidate</span>
+                        <h4>${escapeHtml(candidate.name || candidate.slug || '(unknown)')}</h4>
+                        <p>${escapeHtml((candidate.description || '').slice(0, 150))}</p>
+                        <div class="match-meta">
+                            <span class="badge dept-${candidate.department || ''}">${escapeHtml(candidate.department || '')}</span>
+                            &middot; v${escapeHtml(candidate.current_version || '?')}
+                            ${candidate.category ? `&middot; ${escapeHtml(candidate.category)}` : ''}
+                        </div>
                     </div>
                     <div class="match-arrow">&#8596;</div>
                     <div class="match-skill">
-                        <span class="badge badge-primary">Core</span>
-                        <h4>${escapeHtml(m.core_skill_slug)}</h4>
+                        <span class="badge ${matchBadge}">${escapeHtml(m.match_type || 'match')}</span>
+                        <h4>${escapeHtml(matched.name || matched.slug || '(unknown)')}</h4>
+                        <p>${escapeHtml((matched.description || '').slice(0, 150))}</p>
                         <div class="match-meta">
-                            <span class="badge badge-gray">${escapeHtml(m.match_type || '')}</span>
+                            <span class="badge dept-${matched.department || ''}">${escapeHtml(matched.department || '')}</span>
+                            &middot; v${escapeHtml(matched.current_version || '?')}
                             &middot; ${conf}% confidence
                         </div>
                         <div class="confidence-bar"><div class="confidence-fill" style="width:${conf}%;background:${confColor}"></div></div>
@@ -740,20 +767,15 @@
                     </div>
                 </div>
                 ${m.reviewer_notes ? `<div style="margin-top:0.75rem;padding:0.5rem;background:var(--color-bg-secondary);border-radius:var(--radius-md);font-size:12px"><strong>Notes:</strong> ${escapeHtml(m.reviewer_notes)}</div>` : ''}
-                ${!isReadOnly ? `
                 <div class="match-actions">
-                    <button class="btn btn-success btn-sm" onclick="reviewMatch('${m.id}','approved')">Approve</button>
-                    <button class="btn btn-danger btn-sm" onclick="reviewMatch('${m.id}','rejected')">Reject</button>
-                    <button class="btn btn-warning btn-sm" onclick="promptOverride('${m.id}')">Override</button>
-                    <span class="badge badge-${m.review_status === 'approved' ? 'success' : m.review_status === 'rejected' ? 'danger' : m.review_status === 'override' ? 'warning' : 'gray'}" style="margin-left:auto">
+                    ${!isReadOnly && m.review_status === 'pending' ? `
+                        <button class="btn btn-success btn-sm" onclick="reviewMatch('${m.id}','approved')">Approve</button>
+                        <button class="btn btn-danger btn-sm"  onclick="reviewMatch('${m.id}','rejected')">Reject</button>
+                    ` : ''}
+                    <span class="badge badge-${m.review_status === 'approved' ? 'success' : m.review_status === 'rejected' ? 'danger' : 'gray'}" style="margin-left:auto">
                         ${m.review_status}
                     </span>
-                </div>` : `
-                <div class="match-actions">
-                    <span class="badge badge-${m.review_status === 'approved' ? 'success' : m.review_status === 'rejected' ? 'danger' : m.review_status === 'override' ? 'warning' : 'gray'}" style="margin-left:auto">
-                        ${m.review_status}
-                    </span>
-                </div>`}
+                </div>
             </div>`;
         }).join('');
     }

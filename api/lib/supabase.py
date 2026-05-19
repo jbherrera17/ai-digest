@@ -339,7 +339,8 @@ def get_unmatched_expert_skills():
 
 
 def get_skill_stats():
-    """Get dashboard stats for skills registry. Reads from v2 views, adds legacy aliases."""
+    """Get dashboard stats for skills registry. Reads from v2 views, plus
+    category counts and dependency count for the curator surface."""
     client = get_public_client()
 
     skill_stats = client.table('skill_stats').select('*').execute()
@@ -354,28 +355,44 @@ def get_skill_stats():
     adoptions = client.table('skill_adoptions').select('id', count='exact').execute()
     adoption_count = adoptions.count if adoptions.count is not None else len(adoptions.data)
 
+    deps = client.table('skill_dependencies').select('id', count='exact').execute()
+    deps_count = deps.count if deps.count is not None else len(deps.data)
+
+    # Category split — distinguishes skills (with SKILL.md) from
+    # context-references (the *-shared markdown files registered for governance).
+    cats = client.table('skill_registry').select('category').execute()
+    skill_entries = sum(1 for r in cats.data if r.get('category') == 'skill')
+    context_entries = sum(1 for r in cats.data if r.get('category') == 'context-reference')
+
     synergi = s.get('synergi_skills', 0) or 0
     anthropic = s.get('anthropic_skills', 0) or 0
     opensource = s.get('opensource_skills', 0) or 0
 
     return {
-        # New v2 fields
+        # Corpus
         'total_skills': s.get('total_skills', 0) or 0,
+        'skill_entries': skill_entries,
+        'context_entries': context_entries,
+        'departments': s.get('departments', 0) or 0,
+        # Source-type breakdown
         'synergi_skills': synergi,
         'anthropic_skills': anthropic,
         'opensource_skills': opensource,
+        # Scope breakdown
         'universal_skills': s.get('universal_skills', 0) or 0,
         'domain_skills': s.get('domain_skills', 0) or 0,
         'project_skills': s.get('project_skills', 0) or 0,
-        'departments': s.get('departments', 0) or 0,
+        # Lifecycle queues
         'pending_version_reviews': v.get('pending_reviews', 0) or 0,
         'approved_versions': v.get('approved', 0) or 0,
         'rejected_versions': v.get('rejected', 0) or 0,
         'total_matches': m.get('total_matches', 0) or 0,
         'pending_match_reviews': m.get('pending_reviews', 0) or 0,
+        # Graph
+        'dependencies': deps_count,
         'adoptions': adoption_count,
 
-        # Legacy aliases for /skills.html UI (deprecated, remove in Phase 3)
+        # Legacy aliases — UI still renders these in some paths until Phase 3.1.
         'core_skills': synergi,
         'expert_skills': anthropic + opensource,
         'pending_reviews': v.get('pending_reviews', 0) or 0,
