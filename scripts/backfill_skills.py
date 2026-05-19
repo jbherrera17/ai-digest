@@ -81,6 +81,23 @@ def extract_keywords(body: str, limit: int = 12) -> "list[str]":
     return words
 
 
+def rollup_folder_hash(skill_dir: Path) -> str:
+    """Compute a deterministic SHA-256 over all .md files in a skill folder.
+
+    Per docs/skill-folder-format.md: each .md file contributes its filename,
+    a null byte, its bytes, and another null byte to the hash input, in
+    alphabetical filename order. Any addition/removal/rename/edit changes
+    the digest, so the Sunday cron will detect changes to any file.
+    """
+    h = hashlib.sha256()
+    for md_file in sorted(skill_dir.glob("*.md")):
+        h.update(md_file.name.encode("utf-8"))
+        h.update(b"\x00")
+        h.update(md_file.read_bytes())
+        h.update(b"\x00")
+    return h.hexdigest()
+
+
 def build_skill_entry(skill_dir: Path, scan_time: str) -> "dict | None":
     """Build a single skill registry entry. Returns None if no SKILL.md present."""
     skill_md = skill_dir / "SKILL.md"
@@ -92,7 +109,10 @@ def build_skill_entry(skill_dir: Path, scan_time: str) -> "dict | None":
     content = skill_md.read_text(encoding="utf-8")
     meta, body = parse_frontmatter(content)
 
-    content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+    # Rollup hash covers SKILL.md PLUS any supporting files in the folder
+    # (examples.md, formats.md, instructions.md, context-assets.md, ...).
+    # See docs/skill-folder-format.md.
+    content_hash = rollup_folder_hash(skill_dir)
     description = meta.get("description", "")
     name = meta.get("name", slug)
 
@@ -146,44 +166,59 @@ def _first_paragraph(body: str) -> str:
     return ""
 
 
-def _source_file_for_entry(entry: dict) -> Path:
-    """Resolve the on-disk source file for a registry entry.
+def _source_files_for_entry(entry: dict) -> list:
+    """Return the list of source files to scan for links.
 
-    Skills: file_path is the folder; source is folder/SKILL.md.
-    Context-references: file_path is the .md file itself.
+    Skills: all .md files in the folder (rollup behavior per the
+    multi-file convention in docs/skill-folder-format.md).
+    Context-references: the single .md file the entry points at.
     """
     fp = entry["filePath"]
     abs_path = REPO_ROOT / fp
     if entry.get("category") == "context-reference":
-        return abs_path
-    return abs_path / "SKILL.md"
+        return [abs_path] if abs_path.is_file() else []
+    if not abs_path.is_dir():
+        return []
+    return sorted(abs_path.glob("*.md"))
 
 
 def extract_dependencies(entry: dict, path_to_skill_id: dict) -> list:
-    """Parse inline markdown links from this entry's source file.
+    """Parse inline markdown links from this entry's source file(s).
 
-    Returns a list of edge records: {skillId, dependsOnId, linkText, linkTarget, linkKind}.
-    Unresolved links logged to stderr; never raises.
+    For skills, walks all .md files in the folder and dedupes across them —
+    a single edge per (source skill, target skill) regardless of which
+    supporting file produced the link.
 
-    Resolution rules (per REQ-003 §10):
-      - Exact match against registry file_path values
-      - If a resolved path ends in /SKILL.md, also try the folder form
-        (since skill entries' file_path is the folder, not the file)
+    Resolution rules (REQ-003 §10 + multi-file convention):
+      - Exact path match against registry file_path values
+      - Walk up parent directories — files inside a skill folder attribute
+        to the skill as a whole
       - External URLs, anchors, non-.md targets skipped
       - Self-references skipped
     """
-    source_file = _source_file_for_entry(entry)
-    if not source_file.is_file():
-        return []
-
-    try:
-        content = source_file.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
+    source_files = _source_files_for_entry(entry)
+    if not source_files:
         return []
 
     edges = []
     seen = set()
 
+    for source_file in source_files:
+        try:
+            content = source_file.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        edges.extend(_parse_links_from_content(content, source_file, entry, path_to_skill_id, seen))
+
+    return edges
+
+
+def _parse_links_from_content(content: str, source_file: Path, entry: dict, path_to_skill_id: dict, seen: set) -> list:
+    """Extract dependency edges from a single source file's content.
+
+    `seen` is mutated to dedupe (source_id, target_id) pairs across files.
+    """
+    edges = []
     for match in LINK_RE.finditer(content):
         link_text = match.group(1).strip()
         link_target = match.group(2).strip()

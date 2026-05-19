@@ -16,6 +16,7 @@ pip install -r requirements.txt
 |---|---|
 | Understanding the codebase | [`docs/architecture.md`](docs/architecture.md) |
 | Adding a new UI page | [`docs/add-new-page.md`](docs/add-new-page.md) |
+| Authoring a new skill (`.agents/skills/`) | [`docs/skill-folder-format.md`](docs/skill-folder-format.md) |
 | Styling a page (tokens, components) | [`docs/design-standard.md`](docs/design-standard.md) |
 | Deploying / env vars | [`docs/deployment.md`](docs/deployment.md) |
 | First-time setup | [`docs/SETUP.md`](docs/SETUP.md) |
