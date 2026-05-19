@@ -16,6 +16,7 @@
 </script>
 
 <link rel="stylesheet" href="/styles/base.css"/>
+<link rel="stylesheet" href="/styles/artifact-window.css"/>
 
 <style>
 /* ============================================
@@ -1494,12 +1495,20 @@ html, body { height: 100%; overflow: hidden; }
   </div>
 </div>
 
+<!-- ARTIFACT WINDOW LAYER (REQ-002 Phase 3) — floating windows live here -->
+<div id="artifact-layer"></div>
+
 <!-- MAIN WORKSPACE -->
 <div class="workspace" id="workspace">
   <div class="canvas-content" id="canvasContent">
 
-    <!-- Metric Cards -->
-    <div class="canvas-block" id="block-metrics" style="animation-delay: 0ms">
+    <div id="workspace-empty" style="text-align:center;color:var(--text-muted);font-size:0.9rem;padding:var(--space-10) var(--space-4);max-width:560px;margin:0 auto;">
+      <div style="font-size:1.15rem;margin-bottom:var(--space-2);color:var(--text-secondary);font-weight:500;">Workspace ready</div>
+      Ask Higgins for a document, code listing, deck, or any deliverable — it'll open as a floating artifact window you can drag, resize, minimize, and stack.
+    </div>
+
+    <!-- Legacy demo blocks (REQ-002 Phase 3: retired in favor of artifact windows) -->
+    <div class="canvas-block" id="block-metrics" style="display:none">
       <div class="block-header">
         <span class="block-title">Q1 OKR Summary</span>
         <div class="block-actions">
@@ -1519,7 +1528,7 @@ html, body { height: 100%; overflow: hidden; }
     </div>
 
     <!-- Chart -->
-    <div class="canvas-block" id="block-chart" style="animation-delay: 100ms">
+    <div class="canvas-block" id="block-chart" style="display:none">
       <div class="block-header">
         <span class="block-title">OKR Progress Over Time</span>
         <div class="block-actions">
@@ -1532,7 +1541,7 @@ html, body { height: 100%; overflow: hidden; }
     </div>
 
     <!-- Data Table -->
-    <div class="canvas-block" id="block-table" style="animation-delay: 200ms">
+    <div class="canvas-block" id="block-table" style="display:none">
       <div class="block-header">
         <span class="block-title">At-Risk & Behind OKRs</span>
         <div class="block-actions">
@@ -1556,7 +1565,7 @@ html, body { height: 100%; overflow: hidden; }
     </div>
 
     <!-- Narrative -->
-    <div class="canvas-block" id="block-narrative" style="animation-delay: 300ms">
+    <div class="canvas-block" id="block-narrative" style="display:none">
       <div class="block-header">
         <span class="block-title">Analysis</span>
         <div class="block-actions">
@@ -1615,7 +1624,7 @@ html, body { height: 100%; overflow: hidden; }
     </div>
     <div class="message agent">
       <div class="message-bubble"><strong>7 OKRs on track</strong>, but <strong>3 at risk</strong> and <strong>2 behind</strong>. Overall completion is <strong>72%</strong> with 3 weeks left.<br><br>The revenue target in Sales is the primary concern at 67%. I've assembled the full breakdown on the canvas.</div>
-      <div class="message-meta">10:32 AM <span class="model-badge">Claude Opus</span></div>
+      <div class="message-meta">10:32 AM <span class="model-badge">Claude Opus 4.7</span></div>
       <div class="quick-replies">
         <button class="chip" onclick="handleChipClick(this,'Show breakdown by department')">By department</button>
         <button class="chip" onclick="handleChipClick(this,'Export as PDF')">Export PDF</button>
@@ -1640,10 +1649,19 @@ html, body { height: 100%; overflow: hidden; }
     <div class="input-meta">
       <span class="listening-label" id="listeningLabel"><span class="rec-dot"></span>Listening...</span>
       <span id="inputHint">Shift+Enter for new line</span>
-      <span>Claude Opus 4.6</span>
+      <span>Claude Opus 4.7</span>
     </div>
   </div>
 </div>
+
+<!-- REQ-002 Phase 2: vanilla-JS stream parser, exposed on window for the
+     inline classic script below to consume. -->
+<script type="module">
+  import { forTextDeltas, parseHigginsStream } from '/scripts/higgins-stream.js';
+  import { ArtifactWindow } from '/scripts/artifact-window.js';
+  window.HigginsStream = { forTextDeltas, parseHigginsStream };
+  window.ArtifactWindow = ArtifactWindow;
+</script>
 
 <script>
 // ============================================
@@ -1864,41 +1882,169 @@ function toggleSend() { document.getElementById('sendBtn').classList.toggle('act
 function handleKeyDown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
 
 // ============================================
-// SEND / RESPOND
+// SEND / RESPOND — REQ-002 Phase 2: real streaming chat
 // ============================================
+const HIGGINS_CONV_KEY = 'higgins.conversationId';
+const HIGGINS_TOKEN_KEY = 'higgins.token';
+
+function escapeHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+function textToHtml(str) {
+  return escapeHtml(str).replace(/\n/g, '<br>');
+}
+function authHeaders() {
+  const h = { 'Content-Type': 'application/json' };
+  const t = localStorage.getItem(HIGGINS_TOKEN_KEY);
+  if (t) h['Authorization'] = 'Bearer ' + t;
+  return h;
+}
+
 let responding = false;
-function sendMessage() {
+
+async function sendMessage() {
   const input = document.getElementById('higginsInput');
   const text = input.value.trim();
   if (!text || responding) return;
+  if (!window.HigginsStream) {
+    console.error('Higgins stream parser not loaded yet');
+    return;
+  }
   responding = true;
-  addMessage('user', text);
+  addMessage('user', textToHtml(text));
   input.value = ''; autoGrow(input); toggleSend();
-  setAgentState('thinking', 'Analyzing your request...');
+
   const face = document.getElementById('avatarFace');
   face.classList.add('thinking');
+  setAgentState('thinking', 'Reaching Claude...');
   const thinking = addThinkingIndicator();
 
-  setTimeout(() => {
-    thinking.remove();
+  // Pre-create the assistant bubble so we can stream into it
+  const agentMsg = addMessage('agent', '');
+  const agentBubble = agentMsg.querySelector('.message-bubble');
+  let accumulated = '';
+  let firstDelta = true;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        conversationId: localStorage.getItem(HIGGINS_CONV_KEY) || undefined,
+        message: text,
+      }),
+    });
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      throw new Error('HTTP ' + res.status + ' ' + (errBody || res.statusText));
+    }
+    const newConvId = res.headers.get('X-Conversation-Id');
+    if (newConvId) localStorage.setItem(HIGGINS_CONV_KEY, newConvId);
+
+    const advanceFromThinking = () => {
+      if (!firstDelta) return;
+      firstDelta = false;
+      thinking.remove();
+      face.classList.remove('thinking');
+      face.classList.add('speaking');
+      setAgentState('responding', 'Speaking...');
+    };
+
+    for await (const part of window.HigginsStream.parseHigginsStream(res)) {
+      const t = part?.type;
+      if (t === 'text-delta' && typeof part.delta === 'string') {
+        advanceFromThinking();
+        accumulated += part.delta;
+        agentBubble.innerHTML = textToHtml(accumulated);
+        const stream = document.getElementById('conversationStream');
+        stream.scrollTop = stream.scrollHeight;
+      } else if (t === 'tool-input-available' && part.toolName && window.ArtifactWindow) {
+        advanceFromThinking();
+        try {
+          if (part.toolName === 'create_artifact') {
+            window.ArtifactWindow.openOrUpdate(part.input.id, {
+              type: part.input.type,
+              title: part.input.title,
+              content: part.input.content,
+              language: part.input.language,
+            });
+          } else if (part.toolName === 'update_artifact') {
+            window.ArtifactWindow.openOrUpdate(part.input.id, {
+              patch: part.input.patch,
+            });
+          }
+        } catch (toolErr) {
+          console.error('[higgins] artifact tool dispatch failed', toolErr, part);
+        }
+      } else if (t === 'error') {
+        throw new Error(part.errorText || part.message || 'Stream error');
+      }
+    }
+
+    if (firstDelta) {
+      // Stream ended with no text — treat as empty (could happen if response
+      // was purely tool calls with no narrative).
+      thinking.remove();
+      face.classList.remove('thinking');
+      if (!accumulated) agentBubble.innerHTML = '<em style="opacity:0.6">(no response)</em>';
+    }
+  } catch (err) {
+    console.error('[higgins] send failed', err);
+    try { thinking.remove(); } catch {}
     face.classList.remove('thinking');
-    face.classList.add('speaking');
-    setAgentState('responding', 'Speaking...');
-
-    const resp = addMessage('agent',
-      'Here\'s the department-level breakdown. <strong>Sales is the primary concern</strong> at 54% — their 3 OKRs are dragging the overall score. Marketing and Product are healthy. Support needs attention on NPS specifically.'
-    );
-    const chips = document.createElement('div');
-    chips.className = 'quick-replies';
-    chips.innerHTML = '<button class="chip" onclick="handleChipClick(this,\'Drill into Sales\')">Drill into Sales</button><button class="chip" onclick="handleChipClick(this,\'Suggest recovery plan\')">Recovery plan</button>';
-    resp.appendChild(chips);
-
-    addDepartmentBlock();
-
-    setTimeout(() => { face.classList.remove('speaking'); setAgentState('ready', 'Ready to help'); }, 2000);
+    face.classList.remove('speaking');
+    agentBubble.innerHTML = '<em style="color:var(--status-danger)">Something went wrong: ' + escapeHtml(err.message || String(err)) + '</em>';
+    showToast('Chat error — see console');
+  } finally {
+    face.classList.remove('speaking');
+    setAgentState('ready', 'Ready to help');
     responding = false;
-  }, 2200);
+  }
 }
+
+// ============================================
+// CONVERSATION HYDRATION — REQ-002 Phase 2
+// Restores prior messages on page load using localStorage conversationId.
+// ============================================
+async function loadConversationHistory() {
+  const id = localStorage.getItem(HIGGINS_CONV_KEY);
+  if (!id) return;
+  try {
+    const res = await fetch('/api/conversation?id=' + encodeURIComponent(id), {
+      headers: authHeaders(),
+    });
+    if (!res.ok) {
+      if (res.status === 404) localStorage.removeItem(HIGGINS_CONV_KEY);
+      return;
+    }
+    const data = await res.json();
+    const messages = Array.isArray(data?.messages) ? data.messages : [];
+    if (!messages.length) return;
+
+    // Wipe any default greeting bubbles before replaying history.
+    const stream = document.getElementById('conversationStream');
+    if (stream) stream.innerHTML = '';
+
+    for (const m of messages) {
+      const parts = Array.isArray(m.parts) ? m.parts : [];
+      const text = parts.filter(p => p && p.type === 'text').map(p => p.text || '').join('');
+      if (!text) continue;
+      addMessage(m.role === 'assistant' ? 'agent' : 'user', textToHtml(text));
+    }
+
+    // Rehydrate artifact windows from prior tool calls
+    const artifacts = Array.isArray(data?.artifacts) ? data.artifacts : [];
+    if (artifacts.length && window.ArtifactWindow) {
+      window.ArtifactWindow.rehydrate(artifacts);
+    }
+  } catch (err) {
+    console.warn('[higgins] history load failed', err);
+  }
+}
+window.addEventListener('DOMContentLoaded', loadConversationHistory);
 
 function addMessage(role, html) {
   const stream = document.getElementById('conversationStream');
@@ -1906,7 +2052,7 @@ function addMessage(role, html) {
   msg.className = `message ${role}`;
   const time = new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
   msg.innerHTML = role === 'agent'
-    ? `<div class="message-bubble">${html}</div><div class="message-meta">${time} <span class="model-badge">Claude Opus</span></div>`
+    ? `<div class="message-bubble">${html}</div><div class="message-meta">${time} <span class="model-badge">Claude Opus 4.7</span></div>`
     : `<div class="message-bubble">${html}</div><div class="message-meta">${time}</div>`;
   stream.appendChild(msg);
   stream.scrollTop = stream.scrollHeight;
