@@ -64,15 +64,35 @@ def parse_frontmatter(text: str) -> "tuple[dict, str]":
     return meta, body
 
 
+# Words that appear across nearly every Synergi SKILL.md heading set
+# (JB's authoring template). Filtering these is what makes keyword sets
+# actually discriminative; otherwise the matcher sees every skill as
+# 85%-similar by template vocabulary alone. Add entries only when
+# verifiably template-driven, never domain vocabulary.
+KEYWORD_STOPWORDS = {
+    # Generic English / connectors
+    'the', 'and', 'for', 'this', 'that', 'these', 'those',
+    'when', 'what', 'how', 'why', 'where', 'who', 'you', 'your', 'our',
+    'use', 'using', 'used', 'uses',
+    'include', 'includes', 'including',
+    'with', 'from', 'into', 'over', 'about', 'against',
+    # Synergi SKILL.md template headings
+    'skill', 'skills', 'identity', 'context', 'sources',
+    'rules', 'operating', 'output', 'formats', 'format',
+    'boundaries', 'boundary', 'section', 'sections',
+    'tools', 'examples', 'example', 'instructions',
+}
+
+
 def extract_keywords(body: str, limit: int = 12) -> "list[str]":
-    """Return lowercase keywords drawn from H2/H3 headings in the markdown body."""
+    """Return lowercase keywords drawn from H2/H3 headings, minus template stopwords."""
     headings = re.findall(r"^##+\s+(.+?)$", body, re.MULTILINE)
     words: "list[str]" = []
     seen = set()
     for h in headings:
         for w in re.findall(r"[A-Za-z][A-Za-z0-9]+", h):
             wl = w.lower()
-            if len(wl) <= 2 or wl in seen:
+            if len(wl) <= 2 or wl in seen or wl in KEYWORD_STOPWORDS:
                 continue
             seen.add(wl)
             words.append(wl)

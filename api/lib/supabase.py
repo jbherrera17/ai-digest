@@ -488,12 +488,17 @@ def upsert_skill_versions(skills, skill_id_map):
 
 
 def upsert_skill_matches(match_results, skill_id_map):
-    """Upsert match results into v2 skill_matches schema (candidate↔matched UUIDs).
+    """Replace the pending match set with the freshly-proposed batch.
 
-    skill_id_map: {skill_id_text: uuid}. Preserves reviewed matches.
-    Accepts both legacy (expertSkillId / coreSkillSlug) and v2 (candidateSkillId /
-    matchedSkillId) match shapes for now — the matching engine in Phase 2 will
-    standardize on v2.
+    Per REQ-001 §10 (mirroring REQ-003's dependency idempotency model):
+    DELETEs all current pending matches and INSERTs the new set in one
+    atomic call cycle. Reviewed pairs (approved/rejected) are never
+    touched. Pairs already reviewed are filtered out of the incoming
+    set so the matcher doesn't re-propose them.
+
+    skill_id_map: {skill_id_text: uuid}. Accepts both legacy
+    (expertSkillId / coreSkillSlug) and v2 (candidateSkillId / matchedSkillId)
+    match shapes — v2 is the matching engine's native output.
     """
     client = get_admin_client()
 
@@ -501,14 +506,15 @@ def upsert_skill_matches(match_results, skill_id_map):
     all_skills = client.table('skill_registry').select('id,slug').execute()
     slug_to_uuid = {s['slug']: s['id'] for s in all_skills.data}
 
-    existing = client.table('skill_matches').select(
-        'candidate_skill_id,matched_skill_id,review_status'
+    # Reviewed pairs are immutable from the matcher's perspective.
+    reviewed = client.table('skill_matches').select(
+        'candidate_skill_id,matched_skill_id'
     ).neq('review_status', 'pending').execute()
-    reviewed_pairs = {(r['candidate_skill_id'], r['matched_skill_id']) for r in existing.data}
+    reviewed_pairs = {(r['candidate_skill_id'], r['matched_skill_id']) for r in reviewed.data}
 
+    # Filter + translate incoming candidates
     rows = []
     for m in match_results:
-        # v2 shape preferred; fall back to legacy field names
         candidate_uuid = (
             m.get('candidateSkillId')
             or skill_id_map.get(m.get('expertSkillId'))
@@ -519,9 +525,10 @@ def upsert_skill_matches(match_results, skill_id_map):
         )
         if not candidate_uuid or not matched_uuid:
             continue
+        if candidate_uuid == matched_uuid:
+            continue
         if (candidate_uuid, matched_uuid) in reviewed_pairs:
             continue
-
         rows.append({
             'candidate_skill_id': candidate_uuid,
             'matched_skill_id': matched_uuid,
@@ -531,13 +538,18 @@ def upsert_skill_matches(match_results, skill_id_map):
             'review_status': 'pending',
         })
 
+    # Idempotent rebuild of the pending tier — reviewed rows stay.
+    client.table('skill_matches').delete().eq('review_status', 'pending').execute()
+
     if not rows:
         return 0
 
-    response = client.table('skill_matches').upsert(
-        rows, on_conflict='candidate_skill_id,matched_skill_id'
-    ).execute()
-    return len(response.data)
+    synced = 0
+    for i in range(0, len(rows), 200):
+        batch = rows[i:i + 200]
+        response = client.table('skill_matches').insert(batch).execute()
+        synced += len(response.data)
+    return synced
 
 
 _UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.I)

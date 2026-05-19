@@ -151,23 +151,22 @@ class handler(BaseHTTPRequestHandler):
         if data.get('dependencies'):
             dependencies_synced = upsert_skill_dependencies(data['dependencies'], skill_id_map)
 
-        # Step 7: Compute match suggestions server-side (REQ-001 Phase 2)
-        # Compares each incoming skill against the post-upsert registry; emits
-        # 'duplicate' / 'new_version' / 'similar' candidates for curator review.
+        # Step 7: Match proposals (REQ-001 Phase 2). Combine server-side
+        # suggestions with any legacy matchResults from the JSON payload, then
+        # call upsert_skill_matches ONCE — it atomically clears stale pendings
+        # and inserts the new set. Calling it twice in a row would lose the
+        # first batch when the second's DELETE fires.
         match_suggestions = compute_match_suggestions(data['skills'], db_skills, skill_id_map)
-        matches_synced = 0
-        if match_suggestions:
-            matches_synced += upsert_skill_matches(match_suggestions, skill_id_map)
-
-        # Step 8: Legacy match results from the JSON payload (if any) — additive
+        all_match_candidates = list(match_suggestions)
         if data.get('matchResults'):
-            matches_synced += upsert_skill_matches(data['matchResults'], skill_id_map)
+            all_match_candidates.extend(data['matchResults'])
+        matches_synced = upsert_skill_matches(all_match_candidates, skill_id_map) if all_match_candidates else 0
 
         self.send_json({
             'sources_synced': sources_synced,
             'skills_synced': skills_synced,
             'versions_synced': versions_synced,
             'dependencies_synced': dependencies_synced,
-            'matches_proposed': len(match_suggestions),
+            'matches_proposed': len(all_match_candidates),
             'matches_synced': matches_synced,
         })
