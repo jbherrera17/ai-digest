@@ -48,7 +48,7 @@ Five working days, four substantial workstreams, **11 commits to `main`** — al
 
 > Commits: `1194d09` (REQ-001 PRD), `4804319` (v2 schema + API migration), `987d511` (backfill script + auth fix), `ebcd0bd` (gitignore hardening), `67a9c15` (extend backfill to context-references)
 
-### Day 4 — 2026-05-19 — Skill Dependency Tracking REQ-003
+### Day 4 — 2026-05-19 — Skill Dependency Tracking REQ-003 + Matching Engine
 
 - Drafted **REQ-002 — Skill Dependency Tracking** (later renumbered to REQ-003 to make room for JB's parallel REQ-002 Higgins 2.0 work).
 - Established `db/migrations/` convention for additive schema deltas; `skills_schema.sql` remains the canonical "fresh-start" representation.
@@ -59,8 +59,10 @@ Five working days, four substantial workstreams, **11 commits to `main`** — al
 - **Backfilled** 102 edges into production.
 - **Refined parser** after JB caught that valid sub-folder files (e.g., `pm-spec-writer/context-assets.md`) were being marked unresolved. Added walk-up parent-directory resolution. Final state: **103 edges, 0 unresolved**.
 - **Archived REQ-003** to `requests/archive/`.
+- **Codified multi-file skill folder convention** in `docs/skill-folder-format.md`. Updated `scripts/backfill_skills.py` for rollup folder hashing + multi-file link extraction. All 74 entries re-synced under the new hashing scheme. CLAUDE.md updated to reference the new doc.
+- **REQ-001 Phase 2 — Matching engine shipped.** `api/lib/matching.py` is a heuristic (no-LLM) matcher: `duplicate` on content hash, `new_version` on slug clash, `similar` on keyword Jaccard ≥ 0.40 (+ same-department boost). Wired into `/api/admin/skills/sync`. Initial run produced 179 false-positive "similar" matches from template heading vocabulary; added `KEYWORD_STOPWORDS` to filter the SKILL.md template ("identity", "context", "sources", etc.) and made `upsert_skill_matches` idempotent (DELETE pendings + INSERT new, like the dependency upsert). Final state: **6 pending matches** — three mutually-similar orchestrator skills (mkt-orchestrator, ops-orchestrator, pm-orchestrator), each pair counted in both directions. Idempotency verified: two consecutive syncs both produce 6 matches.
 
-> Commits: `c9f5d14` (REQ-003 Phase 1 schema), `e4e432b` (renumber REQ-002→REQ-003), `5b988aa` (Phases 2+3 parser + upsert), `3f99f6f` (Phase 4 read API), `f99f917` (archive REQ-003), `dce9060` (parser walk-up fix)
+> Commits: `c9f5d14` (REQ-003 Phase 1 schema), `e4e432b` (renumber REQ-002→REQ-003), `5b988aa` (Phases 2+3 parser + upsert), `3f99f6f` (Phase 4 read API), `f99f917` (archive REQ-003), `dce9060` (parser walk-up fix), `c3104e7` (multi-file skill convention), `3866fd0` (REQ-003 status stamp), `c62ed13` (REQ-001 Phase 2 matcher), `d3ae1a6` (Phase 2.1 stopwords + idempotent matches)
 
 ---
 
@@ -74,7 +76,7 @@ Five working days, four substantial workstreams, **11 commits to `main`** — al
 | `skill_registry` | **74** | The catalog (66 skills + 8 context-references) |
 | `skill_versions` | 74 | All approved at v1.0.0 per REQ-001 §10 backfill decision |
 | `skill_dependencies` | **103** | Edge graph from REQ-003 |
-| `skill_matches` | 0 | Phase 2 matching engine pending |
+| `skill_matches` | **6** | All pending review — 3 orchestrator pairs surfaced by Phase 2 matcher |
 | `skill_adoptions` | 0 | No adoption flow exercised yet |
 
 ### Skills by department
@@ -126,7 +128,7 @@ PUT  /api/admin/skills/matches/<id>                  — review a match
 
 | REQ | Title | Status | Phase |
 |---|---|---|---|
-| **REQ-001** | Skills Governance Layer | Approved, in flight | Phase 1 ✅ — Phase 2 next |
+| **REQ-001** | Skills Governance Layer | Approved, in flight | Phase 1 ✅, Phase 2 ✅ — Phase 3 next |
 | **REQ-002** | Higgins 2.0 Chat + Floating Artifact Windows | JB's parallel workstream | (not tracked here) |
 | **REQ-003** | Skill Dependency Tracking | ✅ Shipped, archived | v1 + v1.1 walk-up patch |
 
@@ -165,13 +167,9 @@ Lives in a separate repo: `synergi-skills-updater/`.
 
 Sequenced by what unlocks the most value:
 
-### 1. REQ-001 Phase 2 — Matching engine (~2 sessions)
+### 1. ~~REQ-001 Phase 2 — Matching engine~~ ✅ DONE 2026-05-19
 
-**Why first:** Gating item for the Sunday cron. Without it, the cron can't safely decide whether a new skill is a brand-new addition or a new version of an existing one.
-
-**What:** Content-hash + keyword-overlap similarity in `api/lib/supabase.py` (or a new `api/lib/matching.py`). Tested against synthetic "new version of X" vs "brand-new skill" cases. Output rows land in `skill_matches` for curator review.
-
-**Deliverable:** Sync flow now produces match suggestions when content drift is detected.
+Shipped as `api/lib/matching.py` + idempotent upsert path. Heuristic-only (no LLM). 6 pending matches surfaced on the current 74-entry registry — three orchestrator skills (mkt/ops/pm), reasonable for curator review.
 
 ### 2. REQ-001 Phase 3 — Curator UX polish on `/skills.html` (~2 sessions)
 
