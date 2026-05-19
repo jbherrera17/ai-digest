@@ -13,6 +13,7 @@ from lib.supabase import (
     update_match_review, create_skill_adoption,
     get_skill_sources, get_all_skills
 )
+from lib.matching import compute_match_suggestions
 
 
 def verify_admin_token(headers):
@@ -150,15 +151,23 @@ class handler(BaseHTTPRequestHandler):
         if data.get('dependencies'):
             dependencies_synced = upsert_skill_dependencies(data['dependencies'], skill_id_map)
 
-        # Step 7: Upsert matches (preserving reviewed ones)
+        # Step 7: Compute match suggestions server-side (REQ-001 Phase 2)
+        # Compares each incoming skill against the post-upsert registry; emits
+        # 'duplicate' / 'new_version' / 'similar' candidates for curator review.
+        match_suggestions = compute_match_suggestions(data['skills'], db_skills, skill_id_map)
         matches_synced = 0
+        if match_suggestions:
+            matches_synced += upsert_skill_matches(match_suggestions, skill_id_map)
+
+        # Step 8: Legacy match results from the JSON payload (if any) — additive
         if data.get('matchResults'):
-            matches_synced = upsert_skill_matches(data['matchResults'], skill_id_map)
+            matches_synced += upsert_skill_matches(data['matchResults'], skill_id_map)
 
         self.send_json({
             'sources_synced': sources_synced,
             'skills_synced': skills_synced,
             'versions_synced': versions_synced,
             'dependencies_synced': dependencies_synced,
+            'matches_proposed': len(match_suggestions),
             'matches_synced': matches_synced,
         })
