@@ -317,9 +317,111 @@
         .version { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-tertiary); }
         .truncate { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+        /* ── Skill drawer ── */
+        .drawer-backdrop {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.3);
+            z-index: 45;
+            opacity: 0; pointer-events: none;
+            transition: opacity var(--duration-base) var(--ease-out);
+        }
+        .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+
+        .skill-drawer {
+            position: fixed; right: 0; top: var(--nav-height);
+            height: calc(100vh - var(--nav-height));
+            width: 480px; max-width: 95vw;
+            background: var(--color-surface);
+            border-left: 1px solid var(--color-border-subtle);
+            box-shadow: var(--shadow-lg);
+            z-index: 50;
+            transform: translateX(100%);
+            transition: transform var(--duration-base) var(--ease-out);
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+        .skill-drawer.open { transform: translateX(0); }
+        .drawer-header {
+            display: flex; align-items: flex-start; justify-content: space-between;
+            margin-bottom: 1rem; gap: 1rem;
+        }
+        .drawer-header h2 {
+            font-size: 18px; font-weight: 600; letter-spacing: -0.01em;
+            line-height: 1.3; margin: 0;
+        }
+        .drawer-header p {
+            color: var(--color-text-tertiary); font-size: 12px;
+            margin-top: 4px; font-family: var(--font-mono);
+        }
+        .drawer-close {
+            background: transparent; border: none; cursor: pointer;
+            padding: 4px 10px; border-radius: var(--radius-sm);
+            color: var(--color-text-secondary); font-size: 20px; line-height: 1;
+            flex-shrink: 0;
+        }
+        .drawer-close:hover { background: var(--color-bg-secondary); color: var(--color-text); }
+
+        .drawer-meta {
+            display: grid; grid-template-columns: auto 1fr;
+            gap: 6px 12px; font-size: 12px;
+            margin-bottom: 1.25rem;
+        }
+        .drawer-meta .label { color: var(--color-text-tertiary); }
+        .drawer-meta .val   { color: var(--color-text); font-weight: 500; word-break: break-all; }
+
+        .drawer-section {
+            border-top: 1px solid var(--color-border-subtle);
+            padding-top: 1.25rem;
+            margin-top: 1.25rem;
+        }
+        .drawer-section h3 {
+            font-size: 11px; font-weight: 600;
+            color: var(--color-text-secondary);
+            text-transform: uppercase; letter-spacing: 0.06em;
+            margin-bottom: 0.75rem;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .drawer-section h3 .count {
+            background: var(--color-bg-secondary);
+            color: var(--color-text);
+            border-radius: var(--radius-full);
+            padding: 1px 8px; font-size: 11px;
+            font-weight: 600;
+        }
+
+        .drawer-description {
+            font-size: 13px; line-height: 1.5;
+            color: var(--color-text-secondary);
+        }
+        .drawer-keywords { display: flex; flex-wrap: wrap; gap: 4px; }
+
+        .drawer-edge {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            background: var(--color-bg-secondary);
+            margin-bottom: 4px;
+            cursor: pointer;
+            transition: background var(--duration-fast);
+        }
+        .drawer-edge:hover { background: var(--color-border-subtle); }
+        .drawer-edge .arrow {
+            color: var(--color-text-tertiary); font-size: 12px;
+            font-family: var(--font-mono); flex-shrink: 0;
+        }
+        .drawer-edge .name { font-size: 13px; font-weight: 500; color: var(--color-text); }
+        .drawer-edge .meta { font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; }
+        .drawer-empty { color: var(--color-text-tertiary); font-size: 13px; padding: 4px 0; }
+
+        .skill-row-clickable { cursor: pointer; }
+        .skill-row-clickable:hover { background: var(--color-bg-secondary); }
+        .match-skill h4.clickable { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 4px; }
+        .match-skill h4.clickable:hover { color: var(--color-primary); }
+
         @media (max-width: 768px) {
             .skills-sidebar { display: none; }
             .main { margin-left: 0; padding: 1.25rem; }
+            .skill-drawer { width: 100%; max-width: 100%; }
         }
     </style>
 </head>
@@ -434,9 +536,9 @@
                     <option value="sup">Support</option>
                 </select>
                 <select id="filterType" onchange="filterSkills()">
-                    <option value="">All Types</option>
-                    <option value="core">Core</option>
-                    <option value="expert">Expert</option>
+                    <option value="">All Categories</option>
+                    <option value="skill">Skills</option>
+                    <option value="context-reference">Context References</option>
                 </select>
             </div>
             <div class="card">
@@ -447,7 +549,7 @@
                                 <th>Name</th>
                                 <th>Description</th>
                                 <th>Dept</th>
-                                <th>Source</th>
+                                <th>Category</th>
                                 <th>Version</th>
                                 <th>Keywords</th>
                             </tr>
@@ -536,6 +638,35 @@
         </div>
     </div>
 </div>
+
+<!-- Skill Detail Drawer -->
+<div id="drawerBackdrop" class="drawer-backdrop" onclick="closeSkillDrawer()"></div>
+<aside id="skillDrawer" class="skill-drawer" aria-hidden="true" aria-label="Skill detail">
+    <div class="drawer-header">
+        <div>
+            <h2 id="drawerSkillName">—</h2>
+            <p id="drawerSkillSlug"></p>
+        </div>
+        <button class="drawer-close" onclick="closeSkillDrawer()" aria-label="Close detail">&times;</button>
+    </div>
+    <div class="drawer-meta" id="drawerMeta"></div>
+    <div class="drawer-description" id="drawerDescription"></div>
+
+    <div class="drawer-section" id="drawerKeywordsBox" style="display:none">
+        <h3>Keywords</h3>
+        <div class="drawer-keywords" id="drawerKeywordsList"></div>
+    </div>
+
+    <div class="drawer-section">
+        <h3>Depends on <span class="count" id="drawerDepsCount">0</span></h3>
+        <div id="drawerDepsList"></div>
+    </div>
+
+    <div class="drawer-section">
+        <h3>Dependents <span class="count" id="drawerDependentsCount">0</span></h3>
+        <div id="drawerDependentsList"></div>
+    </div>
+</aside>
 
 <!-- Toast -->
 <div id="toast" class="toast"></div>
@@ -668,8 +799,7 @@
             (s.description || '').toLowerCase().includes(search)
         );
         if (dept) filtered = filtered.filter(s => s.department === dept);
-        if (type === 'core') filtered = filtered.filter(s => s.is_core_skill);
-        if (type === 'expert') filtered = filtered.filter(s => s.is_expert_skill);
+        if (type) filtered = filtered.filter(s => (s.category || 'skill') === type);
 
         renderSkillsTable(filtered);
     }
@@ -678,11 +808,11 @@
         document.getElementById('skillsCount').textContent = `${data.length} skills`;
         const tbody = document.getElementById('skillsTableBody');
         tbody.innerHTML = data.map(s => `
-            <tr>
+            <tr class="skill-row-clickable" data-slug="${escapeHtml(s.slug)}" onclick="openSkillDrawer(this.dataset.slug)">
                 <td><strong>${escapeHtml(s.name)}</strong><br><span style="font-size:11px;color:var(--color-text-tertiary)">${escapeHtml(s.slug)}</span></td>
                 <td class="truncate">${escapeHtml((s.description || '').slice(0, 120))}</td>
                 <td><span class="badge dept-${s.department}">${s.department}</span></td>
-                <td><span class="badge ${s.is_core_skill ? 'badge-primary' : 'badge-success'}">${s.is_core_skill ? 'Core' : 'Expert'}</span></td>
+                <td><span class="badge ${s.category === 'context-reference' ? 'badge-warning' : 'badge-primary'}">${escapeHtml(s.category || 'skill')}</span></td>
                 <td><span class="version">${s.current_version || '1.0.0'}</span></td>
                 <td>${(s.keywords || []).slice(0, 3).map(k => `<span class="keyword">${escapeHtml(k)}</span>`).join('')}</td>
             </tr>
@@ -739,12 +869,14 @@
             const confColor = conf >= 80 ? 'var(--color-success)' : conf >= 50 ? 'var(--color-warning)' : 'var(--color-danger)';
             const matchBadge = matchTypeColor(m.match_type);
 
+            const candSlug = candidate.slug || '';
+            const matchedSlug = matched.slug || '';
             return `
             <div class="match-card status-${m.review_status}">
                 <div class="match-grid">
                     <div class="match-skill">
                         <span class="badge badge-primary">Candidate</span>
-                        <h4>${escapeHtml(candidate.name || candidate.slug || '(unknown)')}</h4>
+                        <h4 ${candSlug ? `class="clickable" data-slug="${escapeHtml(candSlug)}" onclick="openSkillDrawer(this.dataset.slug)"` : ''}>${escapeHtml(candidate.name || candSlug || '(unknown)')}</h4>
                         <p>${escapeHtml((candidate.description || '').slice(0, 150))}</p>
                         <div class="match-meta">
                             <span class="badge dept-${candidate.department || ''}">${escapeHtml(candidate.department || '')}</span>
@@ -755,7 +887,7 @@
                     <div class="match-arrow">&#8596;</div>
                     <div class="match-skill">
                         <span class="badge ${matchBadge}">${escapeHtml(m.match_type || 'match')}</span>
-                        <h4>${escapeHtml(matched.name || matched.slug || '(unknown)')}</h4>
+                        <h4 ${matchedSlug ? `class="clickable" data-slug="${escapeHtml(matchedSlug)}" onclick="openSkillDrawer(this.dataset.slug)"` : ''}>${escapeHtml(matched.name || matchedSlug || '(unknown)')}</h4>
                         <p>${escapeHtml((matched.description || '').slice(0, 150))}</p>
                         <div class="match-meta">
                             <span class="badge dept-${matched.department || ''}">${escapeHtml(matched.department || '')}</span>
@@ -953,6 +1085,115 @@
             btn.textContent = 'Sync';
         }
     }
+
+    // ── Skill Detail Drawer ──────────────────────────────────────
+    // Click any skill row (Skills Browser) or skill name (Match Review)
+    // to slide a detail panel in from the right with metadata + the
+    // full dependency / dependent graph for that entry. Edges are
+    // clickable for fast graph navigation.
+
+    async function openSkillDrawer(slug) {
+        if (!slug) return;
+
+        // Find skill in memory first; otherwise fetch the full list and cache.
+        let skill = (skills || []).find(s => s.slug === slug);
+        if (!skill) {
+            try {
+                const data = await apiPublic('');
+                skills = data.skills || [];
+                skill = skills.find(s => s.slug === slug);
+            } catch (e) { showToast(e.message, 'error'); return; }
+        }
+        if (!skill) {
+            showToast(`Skill '${slug}' not found`, 'error');
+            return;
+        }
+
+        // Header + metadata render immediately from in-memory data.
+        document.getElementById('drawerSkillName').textContent = skill.name || skill.slug;
+        document.getElementById('drawerSkillSlug').textContent = skill.slug;
+        document.getElementById('drawerMeta').innerHTML = `
+            <div class="label">Department</div>  <div class="val">${escapeHtml(skill.department || '—')}</div>
+            <div class="label">Category</div>    <div class="val">${escapeHtml(skill.category || 'skill')}</div>
+            <div class="label">Scope</div>       <div class="val">${escapeHtml(skill.scope || '—')}</div>
+            <div class="label">Source type</div> <div class="val">${escapeHtml(skill.source_type || '—')}</div>
+            <div class="label">Version</div>     <div class="val">${escapeHtml(skill.current_version || '—')}</div>
+            <div class="label">File path</div>   <div class="val" style="font-family:var(--font-mono);font-size:11px">${escapeHtml(skill.file_path || '—')}</div>
+        `;
+        document.getElementById('drawerDescription').textContent = skill.description || '';
+
+        const keywordsBox = document.getElementById('drawerKeywordsBox');
+        if (skill.keywords && skill.keywords.length) {
+            document.getElementById('drawerKeywordsList').innerHTML =
+                skill.keywords.map(k => `<span class="keyword">${escapeHtml(k)}</span>`).join('');
+            keywordsBox.style.display = 'block';
+        } else {
+            keywordsBox.style.display = 'none';
+        }
+
+        document.getElementById('drawerDepsList').innerHTML = '<div class="drawer-empty">Loading…</div>';
+        document.getElementById('drawerDependentsList').innerHTML = '<div class="drawer-empty">Loading…</div>';
+        document.getElementById('drawerDepsCount').textContent = '…';
+        document.getElementById('drawerDependentsCount').textContent = '…';
+
+        // Animate in BEFORE the edge fetches so the user gets immediate feedback.
+        document.getElementById('drawerBackdrop').classList.add('open');
+        const drawer = document.getElementById('skillDrawer');
+        drawer.classList.add('open');
+        drawer.setAttribute('aria-hidden', 'false');
+
+        // Edges fetched in parallel — typically returns in well under 200ms.
+        try {
+            const [depsRes, dependentsRes] = await Promise.all([
+                apiPublic(`${encodeURIComponent(slug)}/dependencies`),
+                apiPublic(`${encodeURIComponent(slug)}/dependents`),
+            ]);
+            renderDrawerEdges('drawerDepsList', 'drawerDepsCount', depsRes.dependencies || [], 'outgoing');
+            renderDrawerEdges('drawerDependentsList', 'drawerDependentsCount', dependentsRes.dependents || [], 'incoming');
+        } catch (e) {
+            document.getElementById('drawerDepsList').innerHTML = '<div class="drawer-empty">Failed to load edges</div>';
+            document.getElementById('drawerDependentsList').innerHTML = '<div class="drawer-empty">Failed to load edges</div>';
+            showToast(e.message, 'error');
+        }
+    }
+
+    function renderDrawerEdges(listId, countId, edges, direction) {
+        document.getElementById(countId).textContent = edges.length;
+        const list = document.getElementById(listId);
+        if (!edges.length) {
+            list.innerHTML = `<div class="drawer-empty">No ${direction === 'outgoing' ? 'outgoing' : 'incoming'} edges.</div>`;
+            return;
+        }
+        // Outgoing: this skill depends on something. "depends_on_*" is the target side of the join.
+        // Incoming: something depends on this skill. "skill_*" is the other side.
+        list.innerHTML = edges.map(e => {
+            const slug = direction === 'outgoing' ? e.depends_on_slug : e.skill_slug;
+            const name = direction === 'outgoing' ? e.depends_on_name : e.skill_name;
+            const dept = direction === 'outgoing' ? e.depends_on_department : e.skill_department;
+            const cat  = direction === 'outgoing' ? (e.depends_on_category || '') : '';
+            const arrow = direction === 'outgoing' ? '→' : '←';
+            return `
+                <div class="drawer-edge" data-slug="${escapeHtml(slug)}" onclick="openSkillDrawer(this.dataset.slug)">
+                    <span class="arrow">${arrow}</span>
+                    <div style="flex:1;min-width:0">
+                        <div class="name">${escapeHtml(name || slug)}</div>
+                        <div class="meta">${escapeHtml(slug)}${dept ? ' · ' + escapeHtml(dept) : ''}${cat ? ' · ' + escapeHtml(cat) : ''}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function closeSkillDrawer() {
+        document.getElementById('drawerBackdrop').classList.remove('open');
+        const drawer = document.getElementById('skillDrawer');
+        drawer.classList.remove('open');
+        drawer.setAttribute('aria-hidden', 'true');
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeSkillDrawer();
+    });
 
     function escapeHtml(str) {
         if (!str) return '';
