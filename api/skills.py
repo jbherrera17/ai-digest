@@ -9,7 +9,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from lib.supabase import (
     get_all_skills, get_skill_sources, get_skill_matches,
-    get_unmatched_expert_skills, get_skill_stats
+    get_unmatched_expert_skills, get_skill_stats,
+    get_skill_dependencies, get_skill_dependents
 )
 
 
@@ -74,6 +75,32 @@ class handler(BaseHTTPRequestHandler):
             elif len(path_parts) == 3 and path_parts[2] == 'sources':
                 sources = get_skill_sources()
                 self.send_json({'sources': sources, 'count': len(sources)})
+
+            # GET /api/skills/<identifier>/dependencies — what this entry depends on
+            elif len(path_parts) == 4 and path_parts[3] == 'dependencies':
+                identifier = path_parts[2]
+                edges = get_skill_dependencies(identifier)
+                if edges is None:
+                    self.send_error_json(f"Skill '{identifier}' not found", 404)
+                    return
+                self.send_json({
+                    'identifier': identifier,
+                    'dependencies': edges,
+                    'count': len(edges),
+                })
+
+            # GET /api/skills/<identifier>/dependents — what depends on this entry
+            elif len(path_parts) == 4 and path_parts[3] == 'dependents':
+                identifier = path_parts[2]
+                edges = get_skill_dependents(identifier)
+                if edges is None:
+                    self.send_error_json(f"Skill '{identifier}' not found", 404)
+                    return
+                self.send_json({
+                    'identifier': identifier,
+                    'dependents': edges,
+                    'count': len(edges),
+                })
 
             else:
                 self.send_error_json('Invalid path', 400)

@@ -1,6 +1,7 @@
 """Supabase client initialization for AIDigest."""
 
 import os
+import re
 from supabase import create_client, Client
 
 # Initialize Supabase client
@@ -537,6 +538,53 @@ def upsert_skill_matches(match_results, skill_id_map):
         rows, on_conflict='candidate_skill_id,matched_skill_id'
     ).execute()
     return len(response.data)
+
+
+_UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.I)
+
+
+def _resolve_skill_id(identifier):
+    """Resolve a UUID, slug, or text skill_id to a UUID. Returns None if not found."""
+    if _UUID_RE.match(identifier):
+        return identifier
+
+    client = get_public_client()
+    # Try slug first (most user-facing form)
+    lookup = client.table('skill_registry').select('id').eq('slug', identifier).execute()
+    if lookup.data:
+        return lookup.data[0]['id']
+    # Fall back to text skill_id (e.g. 'core-synergi/biz-finance')
+    lookup = client.table('skill_registry').select('id').eq('skill_id', identifier).execute()
+    if lookup.data:
+        return lookup.data[0]['id']
+    return None
+
+
+def get_skill_dependencies(identifier):
+    """Get edges where this entry is the source (what it depends on).
+
+    Returns None if the identifier doesn't resolve, else a list of graph rows.
+    Reads from skill_dependency_graph view so callers get both ends' metadata.
+    """
+    uuid = _resolve_skill_id(identifier)
+    if uuid is None:
+        return None
+    client = get_public_client()
+    response = client.table('skill_dependency_graph').select('*').eq('skill_id', uuid).execute()
+    return response.data
+
+
+def get_skill_dependents(identifier):
+    """Get edges where this entry is the target (what depends on it).
+
+    Returns None if the identifier doesn't resolve, else a list of graph rows.
+    """
+    uuid = _resolve_skill_id(identifier)
+    if uuid is None:
+        return None
+    client = get_public_client()
+    response = client.table('skill_dependency_graph').select('*').eq('depends_on_id', uuid).execute()
+    return response.data
 
 
 def upsert_skill_dependencies(dependencies, skill_id_map):
