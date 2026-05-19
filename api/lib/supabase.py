@@ -539,6 +539,55 @@ def upsert_skill_matches(match_results, skill_id_map):
     return len(response.data)
 
 
+def upsert_skill_dependencies(dependencies, skill_id_map):
+    """Replace dependency edges for any source skill referenced in this sync (REQ-003).
+
+    Per REQ-003 §10 decision 2: DELETE all edges for a re-scanned entry, then INSERT
+    the new set. Idempotent; the table never accumulates phantom edges from old links.
+
+    dependencies: list of {skillId, dependsOnId, linkText, linkTarget, linkKind}.
+    skill_id_map: {skill_id_text: uuid}.
+    """
+    if not dependencies:
+        return 0
+
+    client = get_admin_client()
+
+    # Collect source UUIDs we're touching this run
+    source_uuids = set()
+    rows = []
+    for d in dependencies:
+        src_uuid = skill_id_map.get(d.get('skillId'))
+        dep_uuid = skill_id_map.get(d.get('dependsOnId'))
+        if not src_uuid or not dep_uuid or src_uuid == dep_uuid:
+            continue
+        source_uuids.add(src_uuid)
+        rows.append({
+            'skill_id': src_uuid,
+            'depends_on_id': dep_uuid,
+            'link_text': d.get('linkText'),
+            'link_target': d.get('linkTarget'),
+            'link_kind': d.get('linkKind', 'inline-markdown'),
+        })
+
+    if not source_uuids:
+        return 0
+
+    # Delete existing edges for those sources (idempotent re-derivation)
+    client.table('skill_dependencies').delete().in_('skill_id', list(source_uuids)).execute()
+
+    if not rows:
+        return 0
+
+    # Insert the freshly derived edges in batches
+    synced = 0
+    for i in range(0, len(rows), 200):
+        batch = rows[i:i + 200]
+        response = client.table('skill_dependencies').insert(batch).execute()
+        synced += len(response.data)
+    return synced
+
+
 def update_match_review(match_id, data):
     """Update a match review status."""
     client = get_admin_client()

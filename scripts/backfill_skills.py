@@ -27,9 +27,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 SKILLS_ROOT = Path("/Users/jbh17/Documents/AIDevelopment/.agents/skills")
+REPO_ROOT = SKILLS_ROOT.parent.parent  # /Users/jbh17/Documents/AIDevelopment
 SOURCE_ID = "core-synergi"
 SOURCE_NAME = "Synergi Core Skills"
 REPO_RELATIVE_PREFIX = ".agents/skills"
+
+# Inline markdown link: [text](target) — captures most real-world usage.
+# Group 1 = link text, group 2 = link target. Greedy on text is fine since
+# brackets don't typically nest in our corpus.
+LINK_RE = re.compile(r"\[([^\]]*)\]\(([^)\s]+)\)")
 
 
 def parse_frontmatter(text: str) -> "tuple[dict, str]":
@@ -140,6 +146,99 @@ def _first_paragraph(body: str) -> str:
     return ""
 
 
+def _source_file_for_entry(entry: dict) -> Path:
+    """Resolve the on-disk source file for a registry entry.
+
+    Skills: file_path is the folder; source is folder/SKILL.md.
+    Context-references: file_path is the .md file itself.
+    """
+    fp = entry["filePath"]
+    abs_path = REPO_ROOT / fp
+    if entry.get("category") == "context-reference":
+        return abs_path
+    return abs_path / "SKILL.md"
+
+
+def extract_dependencies(entry: dict, path_to_skill_id: dict) -> list:
+    """Parse inline markdown links from this entry's source file.
+
+    Returns a list of edge records: {skillId, dependsOnId, linkText, linkTarget, linkKind}.
+    Unresolved links logged to stderr; never raises.
+
+    Resolution rules (per REQ-003 §10):
+      - Exact match against registry file_path values
+      - If a resolved path ends in /SKILL.md, also try the folder form
+        (since skill entries' file_path is the folder, not the file)
+      - External URLs, anchors, non-.md targets skipped
+      - Self-references skipped
+    """
+    source_file = _source_file_for_entry(entry)
+    if not source_file.is_file():
+        return []
+
+    try:
+        content = source_file.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return []
+
+    edges = []
+    seen = set()
+
+    for match in LINK_RE.finditer(content):
+        link_text = match.group(1).strip()
+        link_target = match.group(2).strip()
+
+        # Skip external schemes and pure anchors
+        if link_target.startswith(("http://", "https://", "mailto:", "ftp://", "#")):
+            continue
+        # Strip query/fragment
+        link_path = link_target.split("#", 1)[0].split("?", 1)[0]
+        if not link_path:
+            continue
+        # Only consider markdown targets
+        if not link_path.endswith(".md"):
+            continue
+
+        # Resolve relative to the source file's directory
+        try:
+            resolved = (source_file.parent / link_path).resolve()
+            repo_rel = str(resolved.relative_to(REPO_ROOT))
+        except (ValueError, OSError):
+            continue  # outside REPO_ROOT or unresolvable
+
+        # Match against registry: try exact, then strip trailing /SKILL.md
+        matched_id = path_to_skill_id.get(repo_rel)
+        if not matched_id and repo_rel.endswith("/SKILL.md"):
+            matched_id = path_to_skill_id.get(repo_rel[: -len("/SKILL.md")])
+
+        if not matched_id:
+            print(
+                f"# unresolved link in {entry['id']}: '{link_target}' -> {repo_rel}",
+                file=sys.stderr,
+            )
+            continue
+
+        # Skip self-references
+        if matched_id == entry["id"]:
+            continue
+
+        # Deduplicate (same entry might link to the same target multiple times)
+        key = (entry["id"], matched_id)
+        if key in seen:
+            continue
+        seen.add(key)
+
+        edges.append({
+            "skillId": entry["id"],
+            "dependsOnId": matched_id,
+            "linkText": link_target,
+            "linkTarget": repo_rel,
+            "linkKind": "inline-markdown",
+        })
+
+    return edges
+
+
 def build_context_entries(shared_dir: Path, scan_time: str) -> list:
     """Build registry entries for shared-context files inside a *-shared folder.
 
@@ -228,6 +327,14 @@ def main() -> int:
     # the category field distinguishes them.
     all_entries = skills + context_entries
 
+    # Build path -> skill_id map for dependency resolution (REQ-003 Phase 2)
+    path_to_skill_id = {e["filePath"]: e["id"] for e in all_entries}
+
+    # Parse markdown links from each entry's source file and emit edges
+    dependencies = []
+    for entry in all_entries:
+        dependencies.extend(extract_dependencies(entry, path_to_skill_id))
+
     sources = [
         {
             "id": SOURCE_ID,
@@ -247,6 +354,7 @@ def main() -> int:
         "generatedBy": "ai-tools/scripts/backfill_skills.py",
         "sources": sources,
         "skills": all_entries,
+        "dependencies": dependencies,
     }
 
     json.dump(registry, sys.stdout, indent=2)
@@ -255,6 +363,7 @@ def main() -> int:
     # Diagnostics on stderr so stdout stays clean JSON
     print(
         f"# skills: {len(skills)}  context-references: {len(context_entries)}  "
+        f"dependencies: {len(dependencies)}  "
         f"sources: {len(sources)}  skipped: {len(skipped)}",
         file=sys.stderr,
     )
