@@ -206,10 +206,23 @@ def extract_dependencies(entry: dict, path_to_skill_id: dict) -> list:
         except (ValueError, OSError):
             continue  # outside REPO_ROOT or unresolvable
 
-        # Match against registry: try exact, then strip trailing /SKILL.md
+        # Match against registry:
+        #   1. Exact path match (covers context-references whose file_path is the .md file)
+        #   2. Walk up parent directories — covers skill folders whose file_path is the
+        #      folder (e.g. link to pm-spec-writer/SKILL.md OR pm-spec-writer/context-assets.md
+        #      both resolve to the pm-spec-writer skill folder).
         matched_id = path_to_skill_id.get(repo_rel)
-        if not matched_id and repo_rel.endswith("/SKILL.md"):
-            matched_id = path_to_skill_id.get(repo_rel[: -len("/SKILL.md")])
+        if not matched_id:
+            parts = repo_rel.split("/")
+            while len(parts) > 1:
+                parts.pop()
+                candidate = "/".join(parts)
+                # Don't escape above .agents/skills
+                if not candidate.startswith(REPO_RELATIVE_PREFIX):
+                    break
+                matched_id = path_to_skill_id.get(candidate)
+                if matched_id:
+                    break
 
         if not matched_id:
             print(
