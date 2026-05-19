@@ -317,6 +317,43 @@
         .version { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-tertiary); }
         .truncate { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+        /* ── Instructions callout (used on Match Review) ── */
+        .instructions-card {
+            background: var(--color-primary-soft);
+            border: 1px solid var(--color-border-subtle);
+            border-radius: var(--radius-md);
+            padding: 0.9rem 1.1rem;
+            margin-bottom: 1.25rem;
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--color-text-secondary);
+        }
+        .instructions-card .heading {
+            font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.06em;
+            color: var(--color-primary);
+            margin-bottom: 6px;
+        }
+        .instructions-card p { margin: 0 0 0.5rem; }
+        .instructions-card ul {
+            list-style: none; padding: 0; margin: 0.5rem 0 0;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 6px 16px;
+        }
+        .instructions-card li { display: flex; gap: 8px; align-items: baseline; }
+        .instructions-card li code {
+            font-size: 11px; font-weight: 600;
+            font-family: var(--font-mono);
+            padding: 1px 6px; border-radius: var(--radius-sm);
+            flex-shrink: 0;
+        }
+        .instructions-card li code.t-duplicate   { background: rgba(255,59,48,0.14);  color: #b00d00; }
+        .instructions-card li code.t-new-version { background: rgba(255,149,0,0.14);  color: #b86b00; }
+        .instructions-card li code.t-similar     { background: rgba(0,122,255,0.14);  color: #0058b8; }
+        [data-theme="dark"] .instructions-card li code.t-duplicate   { color: #ff7a72; }
+        [data-theme="dark"] .instructions-card li code.t-new-version { color: #ffb24d; }
+        [data-theme="dark"] .instructions-card li code.t-similar     { color: #6ab0ff; }
+
         /* ── Skill drawer ── */
         .drawer-backdrop {
             position: fixed; inset: 0;
@@ -566,6 +603,25 @@
                 <h2>Match Review</h2>
                 <span id="matchesCount" style="color:var(--color-text-tertiary);font-size:13px"></span>
             </div>
+
+            <div class="instructions-card">
+                <div class="heading">How this works</div>
+                <p>
+                    When the registry syncs, the matching engine compares each entry against the rest of the catalog and flags potential overlap.
+                    <strong>Approve</strong> a real match or <strong>Reject</strong> a false positive — either decision is remembered, and the matcher
+                    will never re-propose the same pair. Pending matches re-derive on every sync; reviewed pairs are preserved untouched.
+                </p>
+                <p style="margin-top:0.6rem"><strong>Match types:</strong></p>
+                <ul>
+                    <li><code class="t-duplicate">duplicate</code> Identical content hash. Same skill ingested under different sources.</li>
+                    <li><code class="t-new-version">new_version</code> Same slug under a different skill_id — likely a re-import.</li>
+                    <li><code class="t-similar">similar</code> Keyword overlap above threshold. You decide if they should consolidate.</li>
+                </ul>
+                <p style="margin-top:0.6rem;font-size:12px;color:var(--color-text-tertiary)">
+                    Tip: click any candidate or matched name to open its detail drawer with full metadata and the dependency graph.
+                </p>
+            </div>
+
             <div class="status-tabs" id="matchTabs"></div>
             <div id="matchesList"></div>
         </div>
