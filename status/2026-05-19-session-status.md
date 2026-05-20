@@ -10,7 +10,7 @@
 
 ## Executive summary
 
-Five working days, four substantial workstreams, **11 commits to `main`** — all pushed. Repo restructured, CA Bill Tracker brought into the design system, **Skills Governance Layer (REQ-001) Phase 1 shipped to production with 74 registry entries**, and **Skill Dependency Tracking (REQ-003) shipped end-to-end with 103 edges live**. JB started REQ-002 (Higgins 2.0 chat + artifacts) in parallel as a separate workstream — not covered in this status.
+Five working days, four substantial workstreams, **20+ commits to `main`** — all pushed. Repo restructured, CA Bill Tracker brought into the design system, **Skills Governance Layer (REQ-001) Phase 1 + 2 + 3 (substantial portion) shipped to production with 74 registry entries**, and **Skill Dependency Tracking (REQ-003) shipped end-to-end with 103 edges live**. The `/skills` curator workspace now has dashboard tiles for the v2 reality, a working match-review surface (the 6 orchestrator pairs render correctly), a skill-detail drawer that exposes the dependency graph by click, and an instructions callout on Match Review. JB started REQ-002 (Higgins 2.0 chat + artifacts) in parallel as a separate workstream — not covered in this status.
 
 ---
 
@@ -48,7 +48,7 @@ Five working days, four substantial workstreams, **11 commits to `main`** — al
 
 > Commits: `1194d09` (REQ-001 PRD), `4804319` (v2 schema + API migration), `987d511` (backfill script + auth fix), `ebcd0bd` (gitignore hardening), `67a9c15` (extend backfill to context-references)
 
-### Day 4 — 2026-05-19 — Skill Dependency Tracking REQ-003 + Matching Engine
+### Day 4 — 2026-05-19 — REQ-003, Matching Engine, Curator UX
 
 - Drafted **REQ-002 — Skill Dependency Tracking** (later renumbered to REQ-003 to make room for JB's parallel REQ-002 Higgins 2.0 work).
 - Established `db/migrations/` convention for additive schema deltas; `skills_schema.sql` remains the canonical "fresh-start" representation.
@@ -62,7 +62,12 @@ Five working days, four substantial workstreams, **11 commits to `main`** — al
 - **Codified multi-file skill folder convention** in `docs/skill-folder-format.md`. Updated `scripts/backfill_skills.py` for rollup folder hashing + multi-file link extraction. All 74 entries re-synced under the new hashing scheme. CLAUDE.md updated to reference the new doc.
 - **REQ-001 Phase 2 — Matching engine shipped.** `api/lib/matching.py` is a heuristic (no-LLM) matcher: `duplicate` on content hash, `new_version` on slug clash, `similar` on keyword Jaccard ≥ 0.40 (+ same-department boost). Wired into `/api/admin/skills/sync`. Initial run produced 179 false-positive "similar" matches from template heading vocabulary; added `KEYWORD_STOPWORDS` to filter the SKILL.md template ("identity", "context", "sources", etc.) and made `upsert_skill_matches` idempotent (DELETE pendings + INSERT new, like the dependency upsert). Final state: **6 pending matches** — three mutually-similar orchestrator skills (mkt-orchestrator, ops-orchestrator, pm-orchestrator), each pair counted in both directions. Idempotency verified: two consecutive syncs both produce 6 matches.
 
-> Commits: `c9f5d14` (REQ-003 Phase 1 schema), `e4e432b` (renumber REQ-002→REQ-003), `5b988aa` (Phases 2+3 parser + upsert), `3f99f6f` (Phase 4 read API), `f99f917` (archive REQ-003), `dce9060` (parser walk-up fix), `c3104e7` (multi-file skill convention), `3866fd0` (REQ-003 status stamp), `c62ed13` (REQ-001 Phase 2 matcher), `d3ae1a6` (Phase 2.1 stopwords + idempotent matches)
+- **REQ-001 Phase 3 — Curator UX (substantial portion shipped).** Three increments to `/skills.html`:
+    - **3.0** — Auth gate auto-skips on page load (UI now matches the API's open-mode behavior — gate only surfaces on a real 401). Match Review rewritten for the v2 schema (was referencing `m.expert` / `m.core_skill_slug` / `m.expert_skill_id` from v1, so the 6 pending matches weren't displaying). Dashboard tiles refreshed: Total Entries (74) / Skills (66) / Context Refs (8) / Departments (10) / Dependencies (103) / Pending Matches (6) / Approved Matches / Adopted. `get_skill_stats()` extended to return `skill_entries`, `context_entries`, and `dependencies` counts.
+    - **3.1** — **Skill detail drawer**. Click any skill row or any candidate/matched name to slide a panel in from the right. Shows full metadata, description, keywords, plus the entry's **outgoing dependencies** AND **incoming dependents** (blast radius). Each edge in either list is itself clickable for graph navigation. Escape / backdrop / × all close. The 103-edge graph is now usable.
+    - **3.2** — Match Review instructions callout. Subtle "How this works" panel above the status tabs: what the queue is, what each match type means (color-coded inline codes matching the badges on the cards), what Approve/Reject does, and a click-to-drawer tip.
+
+> Commits: `c9f5d14` (REQ-003 Phase 1 schema), `e4e432b` (renumber REQ-002→REQ-003), `5b988aa` (Phases 2+3 parser + upsert), `3f99f6f` (Phase 4 read API), `f99f917` (archive REQ-003), `dce9060` (parser walk-up fix), `c3104e7` (multi-file skill convention), `3866fd0` (REQ-003 status stamp), `c62ed13` (REQ-001 Phase 2 matcher), `d3ae1a6` (Phase 2.1 stopwords + idempotent matches), `d2d8e6a` (status doc Phase 2), `b9b65bf` (Phase 3.0 curator surface refresh), `e13f8dd` (Phase 3.1 skill detail drawer), `c67e9dc` (Phase 3.2 Match Review instructions)
 
 ---
 
@@ -128,7 +133,7 @@ PUT  /api/admin/skills/matches/<id>                  — review a match
 
 | REQ | Title | Status | Phase |
 |---|---|---|---|
-| **REQ-001** | Skills Governance Layer | Approved, in flight | Phase 1 ✅, Phase 2 ✅ — Phase 3 next |
+| **REQ-001** | Skills Governance Layer | Approved, in flight | Phase 1 ✅, Phase 2 ✅, Phase 3 (3.0+3.1+3.2 ✅, polish pending) — Phase 4 next |
 | **REQ-002** | Higgins 2.0 Chat + Floating Artifact Windows | JB's parallel workstream | (not tracked here) |
 | **REQ-003** | Skill Dependency Tracking | ✅ Shipped, archived | v1 + v1.1 walk-up patch |
 
@@ -171,24 +176,21 @@ Sequenced by what unlocks the most value:
 
 Shipped as `api/lib/matching.py` + idempotent upsert path. Heuristic-only (no LLM). 6 pending matches surfaced on the current 74-entry registry — three orchestrator skills (mkt/ops/pm), reasonable for curator review.
 
-### 2. REQ-001 Phase 3 — Curator UX polish on `/skills.html` (~2 sessions)
+### 2. REQ-001 Phase 3 — Curator UX (3.0 + 3.1 + 3.2 ✅, cleanup remaining)
 
-**Why next:** Once matching produces output, the curator needs a fast review surface. Today's `/skills.html` is functional but has the auth-gate hangover and lacks bulk actions / version diff. Also the place where dependency-graph data (already live) gets surfaced.
+Shipped this session: auth gate dismissal, v2-schema Match Review, refreshed dashboard tiles, **skill-detail drawer with full dependency graph**, Match Review instructions callout.
 
-**What:**
-- Skip the auth screen entirely when `ADMIN_API_TOKEN` is unset (UI matches the API's already-fixed behavior).
-- Bulk approve / reject for the version review queue.
-- Side-by-side version diff.
-- Dependency graph surface — "approving this version will affect N other entries — review them too."
-- Keyboard-driven review flow.
-
-**Deliverable:** A reviewer can clear 25 pending versions in under 30 minutes.
+**Remaining (defer or pick up later):**
+- **Bulk approve / reject** on the Match Review queue (~30 min)
+- **Version diff** side-by-side for skill_versions review (~1 session)
+- **Keyboard navigation** through the review queues — target <90s per skill per REQ-001 §4 (~30 min)
+- **Retire the legacy Suggestions section** — half-broken under v2, currently misleading (~15 min)
 
 ### 3. REQ-001 Phase 4 — Higgins 2.0 hookup (~1–2 sessions)
 
 **Why:** The v1 consumer of the registry. Higgins 2.0 calls `/api/skills?status=approved` to populate its agent options.
 
-**Note:** JB is currently building Higgins 2.0 chat + artifacts (REQ-002) in parallel. Coordinate sequencing — likely after that lands.
+**Note:** JB is currently building Higgins 2.0 chat + artifacts (REQ-002 — `db/higgins_schema.sql`, `api/chat.ts`, etc.) in parallel. Coordinate sequencing — likely picks up after the REQ-002 chat/artifact substrate is in place.
 
 ### 4. REQ-001 Phase 5 — Repoint the updater + Sunday cron (~1 session + 4-week soak)
 
@@ -198,7 +200,7 @@ Shipped as `api/lib/matching.py` + idempotent upsert path. Heuristic-only (no LL
 
 ### 5. Optional cleanup
 
-- pm-* classification audit (15 min)
+- pm-* classification audit (15 min) — confirm whether the 11 `pm-*` skills should stay `source_type=synergi-original` or flip to `open-source-passthrough` with `upstream_url`.
 - Decide on REQ-004 (multi-file content tracking) if pm-spec-writer is the start of a pattern.
 
 ---
