@@ -3,7 +3,7 @@
 **Owner:** JB Herrera
 **Drafted by:** Higgins
 **Date:** 2026-05-19
-**Status:** Approved 2026-05-19 — recommendations accepted; context strategy revised to summary + dedicated memory store
+**Status:** ✅ Completed 2026-05-19 — Phases 0–6 shipped and live. Final commit: REQ-002 Phase 6 (de30c0c).
 **Project:** ai-tools (`public/higgins2.html`, new `api/chat.ts`, `db/higgins_schema.sql`)
 **Depends on / related:** REQ-001 (Skills Governance Layer) — this REQ ships chat first; skills hook-up is REQ-001 Phase 4.
 
