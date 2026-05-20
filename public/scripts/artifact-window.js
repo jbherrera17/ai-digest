@@ -68,12 +68,15 @@ function forgetBox(id) {
 }
 
 function defaultBox(index) {
-  // Cascade from top-right-ish, with wrap.
-  const baseLeft = Math.max(40, window.innerWidth - 640);
+  // Anchor to the right portion of the workspace, clear of the Higgins
+  // card (top-left, up to ~720px wide). Cascade with a column wrap so
+  // many open artifacts don't pile up under each other.
+  const HIGGINS_CLEARANCE = 560;
+  const baseLeft = Math.max(HIGGINS_CLEARANCE, window.innerWidth - 580);
   const baseTop = 80;
   const wrap = Math.floor((index * CASCADE_STEP) / 280);
   return {
-    left: baseLeft - wrap * 80,
+    left: Math.max(HIGGINS_CLEARANCE, baseLeft - wrap * 60),
     top: baseTop + (index * CASCADE_STEP) % 280,
     width: 520,
     height: 420,
