@@ -178,6 +178,47 @@ ALTER TABLE higgins_artifact_versions  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE higgins_memories           ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
+-- MEMORY RECALL FUNCTION — REQ-002 Phase 5
+-- pgvector cosine similarity search wrapped in a SQL function so the
+-- Supabase JS client can call it via .rpc(). Returns memories ordered
+-- by similarity (1 - cosine distance), filterable by kind + scope.
+-- ============================================
+CREATE OR REPLACE FUNCTION match_higgins_memories(
+  query_embedding vector(1536),
+  user_filter text DEFAULT 'jb',
+  match_count int DEFAULT 5,
+  kind_filter higgins_memory_kind DEFAULT NULL,
+  scope_filter higgins_memory_scope DEFAULT NULL
+)
+RETURNS TABLE (
+  id          uuid,
+  kind        higgins_memory_kind,
+  scope       higgins_memory_scope,
+  title       text,
+  content     text,
+  importance  smallint,
+  similarity  float,
+  created_at  timestamptz
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    m.id, m.kind, m.scope, m.title, m.content, m.importance,
+    1 - (m.embedding <=> query_embedding) AS similarity,
+    m.created_at
+  FROM higgins_memories m
+  WHERE m.user_id = user_filter
+    AND m.embedding IS NOT NULL
+    AND (kind_filter IS NULL OR m.kind = kind_filter)
+    AND (scope_filter IS NULL OR m.scope = scope_filter)
+    AND (m.expires_at IS NULL OR m.expires_at > now())
+  ORDER BY m.embedding <=> query_embedding
+  LIMIT match_count;
+END;
+$$;
+
+-- ============================================
 -- CONVENIENCE VIEW — recent conversations w/ message + artifact counts
 -- ============================================
 CREATE OR REPLACE VIEW higgins_conversation_summary AS

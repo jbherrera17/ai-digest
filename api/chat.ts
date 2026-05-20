@@ -6,10 +6,14 @@ import {
   getConversation,
   listMessages,
   appendMessage,
+  recallMemories,
+  type RecalledMemory,
 } from './lib/higginsRepo.js';
 import { requireOwner } from './lib/auth.js';
 import { buildHigginsSystemPrompt } from './lib/higginsSystemPrompt.js';
 import { makeArtifactTools } from './lib/artifactTools.js';
+import { makeMemoryTools } from './lib/memoryTools.js';
+import { embedText } from './lib/embeddings.js';
 
 /**
  * Higgins 2.0 streaming chat endpoint — REQ-002 Phase 2.
@@ -91,9 +95,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     parts: userParts,
   });
 
+  // Recall relevant memories — embed the new user message, top-3 with
+  // similarity > 0.4. Soft failures are non-fatal: chat still proceeds
+  // without injection if embeddings or pgvector misbehave.
+  let recalledMemories: RecalledMemory[] = [];
+  try {
+    const queryEmbedding = await embedText(incoming);
+    const candidates = await recallMemories({ queryEmbedding, matchCount: 3 });
+    recalledMemories = candidates.filter((m) => m.similarity >= 0.4);
+  } catch (err) {
+    console.warn('[higgins/chat] memory recall skipped', (err as Error).message);
+  }
+
+  const memoryBlock = recalledMemories.length
+    ? '\n\n## Relevant memories (auto-recalled)\n' +
+      recalledMemories
+        .map(
+          (m, i) =>
+            `${i + 1}. [${m.kind}] ${m.title ? m.title + ' — ' : ''}${m.content}` +
+            ` (id=${m.id}, importance=${m.importance}, similarity=${m.similarity.toFixed(2)})`,
+        )
+        .join('\n')
+    : '';
+
   console.log('[higgins/chat] streamText starting', {
     conversationId,
     msgCount: uiMessages.length,
+    memoriesInjected: recalledMemories.length,
     hasGatewayKey: !!process.env.AI_GATEWAY_API_KEY,
     hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY,
   });
@@ -101,9 +129,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const modelMessages = await convertToModelMessages(uiMessages);
   const result = streamText({
     model: 'anthropic/claude-opus-4-7',
-    system: buildHigginsSystemPrompt(),
+    system: buildHigginsSystemPrompt() + memoryBlock,
     messages: modelMessages,
-    tools: makeArtifactTools(conversationId),
+    tools: {
+      ...makeArtifactTools(conversationId),
+      ...makeMemoryTools(conversationId),
+    },
     stopWhen: stepCountIs(8),  // bound tool loops
     onFinish: async ({ text }) => {
       console.log('[higgins/chat] onFinish', { textLen: text?.length ?? 0 });

@@ -313,6 +313,7 @@ export async function saveMemory(args: {
   sourceMessageIds?: string[] | null;
   importance?: number;
   userId?: string;
+  embedding?: number[] | null;
 }): Promise<Memory> {
   const sb = getServiceClient();
   const { data, error } = await sb
@@ -326,11 +327,57 @@ export async function saveMemory(args: {
       content: args.content,
       source_message_ids: args.sourceMessageIds ?? null,
       importance: args.importance ?? 3,
+      embedding: args.embedding ?? null,
     })
     .select()
     .single();
   if (error) throw error;
   return data as Memory;
+}
+
+/**
+ * Semantic recall via pgvector. Requires the `match_higgins_memories`
+ * Postgres function (see db/higgins_schema.sql Phase 5 additions).
+ */
+export interface RecalledMemory {
+  id: string;
+  kind: MemoryKind;
+  scope: MemoryScope;
+  title: string | null;
+  content: string;
+  importance: number;
+  similarity: number;
+  created_at: string;
+}
+
+export async function recallMemories(args: {
+  queryEmbedding: number[];
+  userId?: string;
+  matchCount?: number;
+  kind?: MemoryKind;
+  scope?: MemoryScope;
+}): Promise<RecalledMemory[]> {
+  const sb = getServiceClient();
+  const { data, error } = await sb.rpc('match_higgins_memories', {
+    query_embedding: args.queryEmbedding,
+    user_filter: args.userId ?? OWNER_USER_ID,
+    match_count: args.matchCount ?? 5,
+    kind_filter: args.kind ?? null,
+    scope_filter: args.scope ?? null,
+  });
+  if (error) throw error;
+  return (data ?? []) as RecalledMemory[];
+}
+
+export async function getMemory(id: string): Promise<Memory | null> {
+  const sb = getServiceClient();
+  const { data, error } = await sb
+    .from('higgins_memories')
+    .select()
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as Memory) ?? null;
 }
 
 export async function listMemories(args: {
