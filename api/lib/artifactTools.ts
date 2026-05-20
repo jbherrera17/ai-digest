@@ -6,6 +6,9 @@ import {
   listArtifactVersions,
   type ArtifactType,
 } from './higginsRepo.js';
+import { renderMarkdownToDocxBuffer } from './renderers/docx.js';
+import { renderDeckToPptxBuffer, parseDeckSpec } from './renderers/pptx.js';
+import { uploadArtifactBlob } from './blob.js';
 
 /**
  * Artifact tools — REQ-002 Phase 3.
@@ -75,12 +78,50 @@ export function makeArtifactTools(conversationId: string) {
           type: type as ArtifactType,
           title,
         });
+
+        // Heavy types render server-side and land in Vercel Blob.
+        let blobUrl: string | null = null;
+        let sizeBytes: number | null = null;
+        if (type === 'docx' || type === 'pptx') {
+          try {
+            const nextVersion = artifact.current_version + 1;
+            const buffer =
+              type === 'docx'
+                ? await renderMarkdownToDocxBuffer(content, title)
+                : await renderDeckToPptxBuffer(parseDeckSpec(content));
+            const uploaded = await uploadArtifactBlob({
+              slug: id,
+              version: nextVersion,
+              ext: type,
+              buffer,
+            });
+            blobUrl = uploaded.url;
+            sizeBytes = uploaded.sizeBytes;
+          } catch (err) {
+            console.error('[higgins/artifactTools] server render failed', err);
+            return {
+              status: 'error',
+              id,
+              type,
+              error: (err as Error).message,
+            };
+          }
+        }
+
         await appendArtifactVersion({
           artifactId: artifact.id,
           content: { body: content, language: language ?? null },
+          blobUrl,
           versionNote: 'initial',
         });
-        return { status: 'opened', id, type, title };
+
+        return {
+          status: 'opened',
+          id,
+          type,
+          title,
+          ...(blobUrl ? { blobUrl, sizeBytes } : {}),
+        };
       },
     }),
 
@@ -121,12 +162,47 @@ export function makeArtifactTools(conversationId: string) {
         const newBody =
           patch.mode === 'replace' ? patch.content : currentBody + patch.content;
 
+        // Re-render server-side files when the artifact type warrants it.
+        let blobUrl: string | null = null;
+        let sizeBytes: number | null = null;
+        if (artifact.type === 'docx' || artifact.type === 'pptx') {
+          try {
+            const nextVersion = artifact.current_version + 1;
+            const buffer =
+              artifact.type === 'docx'
+                ? await renderMarkdownToDocxBuffer(newBody, artifact.title ?? id)
+                : await renderDeckToPptxBuffer(parseDeckSpec(newBody));
+            const uploaded = await uploadArtifactBlob({
+              slug: id,
+              version: nextVersion,
+              ext: artifact.type,
+              buffer,
+            });
+            blobUrl = uploaded.url;
+            sizeBytes = uploaded.sizeBytes;
+          } catch (err) {
+            console.error('[higgins/artifactTools] re-render failed', err);
+            return {
+              status: 'error',
+              id,
+              mode: patch.mode,
+              error: (err as Error).message,
+            };
+          }
+        }
+
         await appendArtifactVersion({
           artifactId: artifact.id,
           content: { body: newBody, language: currentLanguage, patch },
+          blobUrl,
           versionNote: versionNote ?? patch.mode,
         });
-        return { status: 'updated', id, mode: patch.mode };
+        return {
+          status: 'updated',
+          id,
+          mode: patch.mode,
+          ...(blobUrl ? { blobUrl, sizeBytes } : {}),
+        };
       },
     }),
   };

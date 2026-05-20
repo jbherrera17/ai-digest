@@ -128,6 +128,7 @@ export class ArtifactWindow {
         content: a.content,
         language: a.language,
         version: a.current_version,
+        blobUrl: a.blob_url,
       });
     }
   }
@@ -139,6 +140,7 @@ export class ArtifactWindow {
     this.content = opts.content ?? '';
     this.language = opts.language;
     this.version = opts.version || 1;
+    this.blobUrl = opts.blobUrl ?? null;
     this.minimized = false;
 
     const box = readBoxes()[id] || defaultBox(ArtifactWindow.registry.size);
@@ -183,11 +185,12 @@ export class ArtifactWindow {
     this.bringToFront();
   }
 
-  update({ type, title, content, language, patch, version }) {
+  update({ type, title, content, language, patch, version, blobUrl }) {
     if (type) this.type = type;
     if (title) this.title = title;
     if (language) this.language = language;
     if (version) this.version = version;
+    if (blobUrl !== undefined) this.blobUrl = blobUrl;
 
     if (patch) {
       if (patch.mode === 'replace') this.content = patch.content;
@@ -209,6 +212,9 @@ export class ArtifactWindow {
     renderArtifact(this.bodyEl, this.type, {
       content: this.content,
       language: this.language,
+      blobUrl: this.blobUrl,
+      slug: this.id,
+      version: this.version,
     });
   }
 

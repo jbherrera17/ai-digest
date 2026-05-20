@@ -46,3 +46,4 @@ MyAgentSkills/
 
 # Temp file from 'vercel env pull' — contains secrets, never commit
 .env.vercel*
+.env*.local

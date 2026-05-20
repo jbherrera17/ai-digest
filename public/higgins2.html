@@ -1979,6 +1979,23 @@ async function sendMessage() {
         } catch (toolErr) {
           console.error('[higgins] artifact tool dispatch failed', toolErr, part);
         }
+      } else if (t === 'tool-output-available' && part.output && window.ArtifactWindow) {
+        // Server-side render result lands here — blob_url for docx/pptx,
+        // status:'error' for renderer failures. Reconcile the open window.
+        const out = part.output;
+        if (out.id) {
+          const win = window.ArtifactWindow.get(out.id);
+          if (win) {
+            if (out.blobUrl) {
+              win.blobUrl = out.blobUrl;
+              win._render();
+            }
+            if (out.status === 'error') {
+              console.error('[higgins] artifact server render error', out.error);
+              showToast('Render failed: ' + (out.error || 'unknown'));
+            }
+          }
+        }
       } else if (t === 'error') {
         throw new Error(part.errorText || part.message || 'Stream error');
       }

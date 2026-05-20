@@ -71,6 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         current_version: a.current_version,
         content: body,
         language,
+        blob_url: a.blob_url,
         updated_at: a.updated_at,
       };
     }),
